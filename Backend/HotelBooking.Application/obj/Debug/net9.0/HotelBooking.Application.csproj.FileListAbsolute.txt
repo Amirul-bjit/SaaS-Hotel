@@ -1,0 +1,15 @@
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\bin\Debug\net9.0\HotelBooking.Application.deps.json
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\bin\Debug\net9.0\HotelBooking.Application.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\bin\Debug\net9.0\HotelBooking.Application.pdb
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\bin\Debug\net9.0\HotelBooking.Domain.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\bin\Debug\net9.0\HotelBooking.Domain.pdb
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.csproj.AssemblyReference.cache
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.AssemblyInfoInputs.cache
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.AssemblyInfo.cs
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.csproj.CoreCompileInputs.cache
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBoo.0ED144E9.Up2Date
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\refint\HotelBooking.Application.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.pdb
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\ref\HotelBooking.Application.dll

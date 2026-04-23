@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "6QwoIgd5s8c=",
+  "success": true,
+  "projectFilePath": "D:\\TestRnD\\SaaS-Hotel\\Backend\\HotelBooking.Application\\HotelBooking.Application.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\BJIT\\.nuget\\packages\\bcrypt.net-next\\4.1.0\\bcrypt.net-next.4.1.0.nupkg.sha512"
+  ],
+  "logs": []
+}

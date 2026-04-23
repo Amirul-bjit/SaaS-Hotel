@@ -1,0 +1,11 @@
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\bin\Debug\net9.0\HotelBooking.Domain.deps.json
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\bin\Debug\net9.0\HotelBooking.Domain.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\bin\Debug\net9.0\HotelBooking.Domain.pdb
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.AssemblyInfoInputs.cache
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.AssemblyInfo.cs
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.csproj.CoreCompileInputs.cache
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\refint\HotelBooking.Domain.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.pdb
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\ref\HotelBooking.Domain.dll

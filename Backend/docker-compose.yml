@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hotelbooking_db
+    environment:
+      POSTGRES_DB: hotelbooking
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hotelbooking_api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=hotelbooking;Username=postgres;Password=postgres"
+      Jwt__Key: "YourSuperSecretKeyHere_MustBe32CharsOrMore!"
+      Jwt__Issuer: "HotelBookingAPI"
+      Jwt__Audience: "HotelBookingClients"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hotelbooking_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hotelbooking.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  pgdata:
