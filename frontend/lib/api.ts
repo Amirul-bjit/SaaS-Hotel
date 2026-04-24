@@ -13,6 +13,9 @@ import {
   CreateBookingRequest,
   SubscriptionResponse,
   CreateSubscriptionRequest,
+  PlanConfigResponse,
+  UpsertPlanConfigRequest,
+  SubscriptionPlan,
   UserResponse,
   CreateOwnerRequest,
 } from '@/types';
@@ -114,6 +117,20 @@ export const subscriptionApi = {
     apiClient
       .post<SubscriptionResponse>(`/subscriptions/${hotelId}`, data)
       .then((r) => r.data),
+  update: (hotelId: string, data: CreateSubscriptionRequest) =>
+    apiClient
+      .put<SubscriptionResponse>(`/subscriptions/${hotelId}`, data)
+      .then((r) => r.data),
+};
+
+// --- Plan Config API ---
+export const planConfigApi = {
+  getAll: () =>
+    apiClient.get<PlanConfigResponse[]>('/subscriptions/plans').then((r) => r.data),
+  getByPlan: (planType: SubscriptionPlan) =>
+    apiClient.get<PlanConfigResponse>(`/subscriptions/plans/${planType}`).then((r) => r.data),
+  upsert: (data: UpsertPlanConfigRequest) =>
+    apiClient.put<PlanConfigResponse>('/subscriptions/plans', data).then((r) => r.data),
 };
 
 // --- User API ---

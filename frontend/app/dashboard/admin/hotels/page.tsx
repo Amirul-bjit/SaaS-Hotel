@@ -40,7 +40,7 @@ export default function HotelsPage() {
   // Subscription modal
   const [subModal, setSubModal] = useState<{ hotelId: string; hotelName: string } | null>(null);
   const [subPlan, setSubPlan] = useState<'Basic' | 'Standard' | 'Premium'>('Basic');
-  const [subExpiry, setSubExpiry] = useState('');
+  const [subBillingCycle, setSubBillingCycle] = useState<'Monthly' | 'Yearly'>('Monthly');
   const [subLoading, setSubLoading] = useState(false);
   const [subError, setSubError] = useState('');
   const [subSuccess, setSubSuccess] = useState('');
@@ -110,12 +110,13 @@ export default function HotelsPage() {
     if (!subModal) return;
     setSubError(''); setSubLoading(true);
     try {
-      const created = await subscriptionApi.create(subModal.hotelId, {
-        planType: subPlan,
-        expiryDate: new Date(subExpiry).toISOString(),
-      });
+      const payload = { planType: subPlan, billingCycle: subBillingCycle };
+      const existing = subscriptions[subModal.hotelId];
+      const created = existing
+        ? await subscriptionApi.update(subModal.hotelId, payload)
+        : await subscriptionApi.create(subModal.hotelId, payload);
       setSubscriptions((prev) => ({ ...prev, [subModal.hotelId]: created }));
-      setSubSuccess(`${created.planType} plan activated.`);
+      setSubSuccess(`${created.planType} plan (${created.billingCycle}) activated.`);
     } catch (err) {
       const e = err as AxiosError<{ message?: string }>;
       setSubError(e.response?.data?.message ?? 'Failed to save subscription.');
@@ -174,7 +175,7 @@ export default function HotelsPage() {
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => { setSubModal({ hotelId: h.id, hotelName: h.name }); setSubPlan('Basic'); setSubExpiry(''); setSubError(''); setSubSuccess(''); }}
+                      onClick={() => { setSubModal({ hotelId: h.id, hotelName: h.name }); setSubPlan('Basic'); setSubBillingCycle('Monthly'); setSubError(''); setSubSuccess(''); }}
                       className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       Manage Plan
@@ -240,8 +241,17 @@ export default function HotelsPage() {
                 <option value="Premium">Premium</option>
               </select>
             </div>
-            <Input label="Expiry Date" type="date" value={subExpiry} onChange={(e) => setSubExpiry(e.target.value)} required />
-            <Button onClick={handleCreateSubscription} loading={subLoading} className="w-full">Save Subscription</Button>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Billing Cycle</label>
+              <select value={subBillingCycle} onChange={(e) => setSubBillingCycle(e.target.value as typeof subBillingCycle)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            </div>
+            <Button onClick={handleCreateSubscription} loading={subLoading} className="w-full">
+              {subscriptions[subModal?.hotelId ?? ''] ? 'Update Subscription' : 'Activate Subscription'}
+            </Button>
           </div>
         )}
       </Modal>

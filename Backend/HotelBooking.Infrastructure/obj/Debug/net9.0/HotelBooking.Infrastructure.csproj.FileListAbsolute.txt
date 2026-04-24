@@ -17,3 +17,4 @@ D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Infrastructure\obj\Debug\net9.0\refin
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Infrastructure\obj\Debug\net9.0\HotelBooking.Infrastructure.pdb
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Infrastructure\obj\Debug\net9.0\HotelBooking.Infrastructure.genruntimeconfig.cache
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Infrastructure\obj\Debug\net9.0\ref\HotelBooking.Infrastructure.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Infrastructure\obj\Debug\net9.0\HotelBooking.Infrastructure.sourcelink.json

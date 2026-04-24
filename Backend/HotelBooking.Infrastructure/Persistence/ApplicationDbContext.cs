@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<SubscriptionPlanConfig> SubscriptionPlanConfigs => Set<SubscriptionPlanConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,10 +77,21 @@ public class ApplicationDbContext : DbContext
         {
             e.HasKey(s => s.Id);
             e.Property(s => s.PlanType).HasConversion<string>();
+            e.Property(s => s.BillingCycle).HasConversion<string>();
+            e.Property(s => s.LastPaymentAmount).HasColumnType("decimal(18,2)");
             e.HasOne(s => s.Hotel)
              .WithOne(h => h.Subscription)
              .HasForeignKey<Subscription>(s => s.HotelId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SubscriptionPlanConfig>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.PlanType).IsUnique();
+            e.Property(p => p.PlanType).HasConversion<string>();
+            e.Property(p => p.MonthlyPrice).HasColumnType("decimal(18,2)");
+            e.Property(p => p.YearlyPrice).HasColumnType("decimal(18,2)");
         });
     }
 }

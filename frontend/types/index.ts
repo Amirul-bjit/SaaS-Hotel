@@ -85,17 +85,41 @@ export interface BookingResponse {
 
 // --- Subscription ---
 export type SubscriptionPlan = 'Basic' | 'Standard' | 'Premium';
+export type BillingCycle = 'Monthly' | 'Yearly';
 
 export interface CreateSubscriptionRequest {
   planType: SubscriptionPlan;
-  expiryDate: string; // ISO date string
+  billingCycle: BillingCycle;
 }
 
 export interface SubscriptionResponse {
   id: string;
   hotelId: string;
   planType: SubscriptionPlan;
+  billingCycle: BillingCycle;
+  startDate: string;
   expiryDate: string;
+  lastPaymentDate: string | null;
+  lastPaymentAmount: number;
+  isActive: boolean;
+  planConfig: PlanConfigResponse | null;
+}
+
+export interface PlanConfigResponse {
+  id: string;
+  planType: SubscriptionPlan;
+  maxRooms: number | null;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  description: string;
+}
+
+export interface UpsertPlanConfigRequest {
+  planType: SubscriptionPlan;
+  maxRooms: number | null;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  description: string;
 }
 
 // --- Auth State ---

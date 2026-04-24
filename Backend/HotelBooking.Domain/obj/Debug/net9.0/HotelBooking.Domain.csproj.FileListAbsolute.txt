@@ -9,3 +9,4 @@ D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\refint\HotelBooking.Domain.dll
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.pdb
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\ref\HotelBooking.Domain.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Domain\obj\Debug\net9.0\HotelBooking.Domain.sourcelink.json

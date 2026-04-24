@@ -13,3 +13,4 @@ D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBoo
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\refint\HotelBooking.Application.dll
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.pdb
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\ref\HotelBooking.Application.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.Application\obj\Debug\net9.0\HotelBooking.Application.sourcelink.json
