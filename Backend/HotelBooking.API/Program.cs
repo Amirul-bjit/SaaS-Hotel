@@ -3,6 +3,7 @@ using HotelBooking.Infrastructure;
 using HotelBooking.Infrastructure.Persistence;
 using HotelBooking.Infrastructure.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -113,7 +114,7 @@ using (var scope = app.Services.CreateScope())
     {
         try
         {
-            db.Database.EnsureCreated();
+            db.Database.Migrate();
             await DataSeeder.SeedAsync(db);
             break;
         }

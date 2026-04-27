@@ -209,9 +209,9 @@ public static class DataSeeder
         // --- Subscriptions ---
         var subscriptions = new List<Subscription>
         {
-            new() { Id = Guid.NewGuid(), HotelId = hotel1Id, PlanType = SubscriptionPlan.Premium, ExpiryDate = DateTime.UtcNow.AddYears(1) },
-            new() { Id = Guid.NewGuid(), HotelId = hotel2Id, PlanType = SubscriptionPlan.Standard, ExpiryDate = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), HotelId = hotel3Id, PlanType = SubscriptionPlan.Basic, ExpiryDate = DateTime.UtcNow.AddMonths(3) },
+            new() { Id = Guid.NewGuid(), HotelId = hotel1Id, PlanType = SubscriptionPlan.Premium, IsActive = true, ExpiryDate = DateTime.UtcNow.AddYears(1) },
+            new() { Id = Guid.NewGuid(), HotelId = hotel2Id, PlanType = SubscriptionPlan.Standard, IsActive = true, ExpiryDate = DateTime.UtcNow.AddMonths(6) },
+            new() { Id = Guid.NewGuid(), HotelId = hotel3Id, PlanType = SubscriptionPlan.Basic, IsActive = true, ExpiryDate = DateTime.UtcNow.AddMonths(3) },
         };
 
         await context.Users.AddRangeAsync(superAdmin, hotelOwner1, hotelOwner2, hotelOwner3, customer);
