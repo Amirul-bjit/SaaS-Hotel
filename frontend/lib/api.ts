@@ -121,6 +121,10 @@ export const subscriptionApi = {
     apiClient
       .put<SubscriptionResponse>(`/subscriptions/${hotelId}`, data)
       .then((r) => r.data),
+  toggleActive: (hotelId: string) =>
+    apiClient
+      .patch<SubscriptionResponse>(`/subscriptions/${hotelId}/toggle`)
+      .then((r) => r.data),
 };
 
 // --- Plan Config API ---

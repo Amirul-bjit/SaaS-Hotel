@@ -56,7 +56,7 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              {(user.role === 'CUSTOMER' || user.role === 'HOTEL_OWNER') && navLink('/hotels', 'Hotels')}
+              {(user.role === 'CUSTOMER') && navLink('/hotels', 'Hotels')}
               {(user.role === 'CUSTOMER') && navLink('/rooms', 'Browse Rooms')}
               {dashboardLink && navLink(dashboardLink, 'Dashboard')}
               <div className="hidden sm:flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-1.5">

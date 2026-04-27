@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { bookingApi, hotelApi, roomApi } from '@/lib/api';
-import { BookingResponse, HotelResponse, RoomResponse } from '@/types';
+import { bookingApi, hotelApi, roomApi, subscriptionApi } from '@/lib/api';
+import { BookingResponse, HotelResponse, RoomResponse, SubscriptionResponse } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Table } from '@/components/ui/Table';
-import { Button } from '@/components/ui/Button';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -25,17 +22,15 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [hotel, setHotel] = useState<HotelResponse | null>(null);
   const [rooms, setRooms] = useState<RoomResponse[]>([]);
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.push('/login'); return; }
-    if (user.role !== 'HOTEL_OWNER') { router.push('/access-denied'); return; }
+    if (authLoading || !user) return;
 
     async function load() {
       try {
@@ -48,6 +43,10 @@ export default function OwnerDashboard() {
           ]);
           setHotel(hotelData);
           setRooms(roomsData);
+          try {
+            const sub = await subscriptionApi.get(user!.hotelId);
+            setSubscription(sub);
+          } catch { /* no subscription */ }
         }
       } catch {
         setError('Failed to load dashboard data.');
@@ -56,11 +55,11 @@ export default function OwnerDashboard() {
       }
     }
     load();
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   if (authLoading || loading) {
     return (
-      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
           <p className="mt-3 text-sm text-gray-500">Loading dashboard...</p>
@@ -69,76 +68,88 @@ export default function OwnerDashboard() {
     );
   }
 
+  const totalRoomCount = rooms.reduce((sum, r) => sum + r.totalRooms, 0);
+  const confirmedBookings = bookings.filter(b => b.status === 'Confirmed').length;
+  const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
+  const isExpired = subscription ? new Date(subscription.expiryDate) < new Date() : false;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="px-6 py-8 max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-extrabold text-gray-900">Owner Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">Welcome back, <span className="font-semibold text-gray-700">{user?.name}</span></p>
+        <h1 className="text-2xl font-extrabold text-gray-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Welcome back, <span className="font-semibold text-gray-700">{user?.name}</span>
+        </p>
       </div>
 
       {error && (
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>
       )}
 
-      {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      {/* Subscription warning */}
+      {subscription && (isExpired || !subscription.isActive) && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          ⚠️ {isExpired ? 'Your subscription has expired.' : 'Your subscription is inactive.'} Some features may be restricted.
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-3xl font-extrabold text-blue-600">{rooms.length}</div>
-          <div className="mt-1 text-sm font-medium text-gray-500">Total Rooms</div>
+          <div className="text-3xl font-extrabold text-blue-600">{hotel?.name ?? '—'}</div>
+          <div className="mt-1 text-sm font-medium text-gray-500">Hotel</div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-3xl font-extrabold text-green-600">{bookings.filter(b => b.status === 'Confirmed').length}</div>
+          <div className="text-3xl font-extrabold text-indigo-600">{rooms.length}</div>
+          <div className="mt-1 text-sm font-medium text-gray-500">
+            Room Types
+            {subscription?.planConfig?.maxRooms != null && (
+              <span className="text-xs text-gray-400 ml-1">({totalRoomCount}/{subscription.planConfig.maxRooms} capacity)</span>
+            )}
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="text-3xl font-extrabold text-green-600">{confirmedBookings}</div>
           <div className="mt-1 text-sm font-medium text-gray-500">Confirmed Bookings</div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-3xl font-extrabold text-purple-600">{bookings.length}</div>
-          <div className="mt-1 text-sm font-medium text-gray-500">Total Bookings</div>
+          <div className="text-3xl font-extrabold text-yellow-600">{pendingBookings}</div>
+          <div className="mt-1 text-sm font-medium text-gray-500">Pending Bookings</div>
         </div>
       </div>
 
-      {/* Hotel info */}
-      {hotel ? (
-        <Card className="mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Subscription info */}
+      {subscription && (
+        <Card className="mb-6" title="Subscription">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">My Hotel</div>
-              <div className="mt-1 text-xl font-bold text-gray-900">{hotel.name}</div>
-              <div className="mt-0.5 font-mono text-xs text-gray-400">{hotel.id}</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Plan</div>
+              <div className="mt-1 text-lg font-bold text-gray-900">{subscription.planType}</div>
             </div>
-            <Link href={`/hotels/${hotel.id}/rooms/new`}>
-              <Button>+ Add Room</Button>
-            </Link>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Billing</div>
+              <div className="mt-1 text-lg font-bold text-gray-900">{subscription.billingCycle}</div>
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Expires</div>
+              <div className={`mt-1 text-lg font-bold ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                {new Date(subscription.expiryDate).toLocaleDateString()}
+              </div>
+            </div>
           </div>
-        </Card>
-      ) : (
-        <Card className="mb-6">
-          <p className="mb-4 text-gray-600">You have no hotel yet.</p>
-          <Link href="/hotels/new"><Button>Create Hotel</Button></Link>
         </Card>
       )}
 
-      <Card className="mb-6" title={`Rooms (${rooms.length})`}>
-        <Table<RoomResponse & Record<string, unknown>>
-          columns={[
-            { key: 'name', header: 'Room Name', render: (r) => <span className="font-semibold text-gray-800">{r.name}</span> },
-            { key: 'price', header: 'Price / Night', render: (r) => <span className="font-bold text-blue-700">${r.price}</span> },
-            { key: 'totalRooms', header: 'Total Rooms', render: (r) => <span className="font-semibold text-gray-700">{r.totalRooms}</span> },
-          ]}
-          data={rooms as unknown as (RoomResponse & Record<string, unknown>)[]}
-          emptyMessage="No rooms added yet."
-        />
-      </Card>
-
-      <Card title={`Bookings (${bookings.length})`}>
+      {/* Recent bookings */}
+      <Card title={`Recent Bookings (${bookings.length})`}>
         <Table<BookingResponse & Record<string, unknown>>
           columns={[
             { key: 'id', header: 'Reference', render: (r) => <span className="font-mono font-bold text-gray-700">{r.id.slice(0, 8).toUpperCase()}</span> },
-            { key: 'userId', header: 'Guest ID', render: (r) => <span className="font-mono text-xs text-gray-500">{r.userId.slice(0, 8)}...</span> },
             { key: 'checkIn', header: 'Check-In', render: (r) => <span className="text-gray-800">{r.checkIn}</span> },
             { key: 'checkOut', header: 'Check-Out', render: (r) => <span className="text-gray-800">{r.checkOut}</span> },
             { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
           ]}
-          data={bookings as unknown as (BookingResponse & Record<string, unknown>)[]}
+          data={(bookings.slice(0, 10)) as unknown as (BookingResponse & Record<string, unknown>)[]}
           emptyMessage="No bookings yet."
         />
       </Card>

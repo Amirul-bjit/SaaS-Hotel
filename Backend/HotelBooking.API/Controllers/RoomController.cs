@@ -39,8 +39,15 @@ public class RoomController : ControllerBase
     public async Task<IActionResult> Create(Guid hotelId, [FromBody] CreateRoomRequest request)
     {
         EnforceHotelAccess(hotelId);
-        var result = await _roomService.CreateRoomAsync(request, hotelId);
-        return CreatedAtAction(nameof(GetByHotel), new { hotelId }, result);
+        try
+        {
+            var result = await _roomService.CreateRoomAsync(request, hotelId);
+            return CreatedAtAction(nameof(GetByHotel), new { hotelId }, result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("hotels/{hotelId:guid}/rooms")]

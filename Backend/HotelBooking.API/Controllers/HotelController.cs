@@ -27,8 +27,15 @@ public class HotelController : ControllerBase
         var ownerId = role == "SUPER_ADMIN" && request.OwnerId.HasValue
             ? request.OwnerId.Value
             : GetUserId();
-        var result = await _hotelService.CreateHotelAsync(request, ownerId);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        try
+        {
+            var result = await _hotelService.CreateHotelAsync(request, ownerId);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id:guid}")]

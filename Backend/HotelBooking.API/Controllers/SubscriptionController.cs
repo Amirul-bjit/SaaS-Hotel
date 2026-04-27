@@ -8,7 +8,7 @@ namespace HotelBooking.API.Controllers;
 
 [ApiController]
 [Route("subscriptions")]
-[Authorize(Policy = "IsSuperAdmin")]
+[Authorize]
 public class SubscriptionController : ControllerBase
 {
     private readonly ISubscriptionService _subscriptionService;
@@ -25,6 +25,7 @@ public class SubscriptionController : ControllerBase
     // ── Plan Config (SuperAdmin sets the terms) ────────────────────────────
 
     [HttpGet("plans")]
+    [Authorize(Policy = "IsSuperAdmin")]
     public async Task<IActionResult> GetAllPlanConfigs()
     {
         var result = await _planConfigService.GetAllAsync();
@@ -32,6 +33,7 @@ public class SubscriptionController : ControllerBase
     }
 
     [HttpGet("plans/{planType}")]
+    [Authorize(Policy = "IsSuperAdmin")]
     public async Task<IActionResult> GetPlanConfig(SubscriptionPlan planType)
     {
         var result = await _planConfigService.GetByPlanTypeAsync(planType);
@@ -39,6 +41,7 @@ public class SubscriptionController : ControllerBase
     }
 
     [HttpPut("plans")]
+    [Authorize(Policy = "IsSuperAdmin")]
     public async Task<IActionResult> UpsertPlanConfig([FromBody] UpsertPlanConfigRequest request)
     {
         var result = await _planConfigService.UpsertAsync(request);
@@ -48,6 +51,7 @@ public class SubscriptionController : ControllerBase
     // ── Hotel Subscriptions ────────────────────────────────────────────────
 
     [HttpPost("{hotelId:guid}")]
+    [Authorize(Policy = "IsSuperAdmin")]
     public async Task<IActionResult> Create(Guid hotelId, [FromBody] CreateSubscriptionRequest request)
     {
         var result = await _subscriptionService.CreateSubscriptionAsync(request, hotelId);
@@ -55,13 +59,30 @@ public class SubscriptionController : ControllerBase
     }
 
     [HttpPut("{hotelId:guid}")]
+    [Authorize(Policy = "IsSuperAdmin")]
     public async Task<IActionResult> Update(Guid hotelId, [FromBody] CreateSubscriptionRequest request)
     {
         var result = await _subscriptionService.UpdateSubscriptionAsync(request, hotelId);
         return Ok(result);
     }
 
+    [HttpPatch("{hotelId:guid}/toggle")]
+    [Authorize(Policy = "IsSuperAdmin")]
+    public async Task<IActionResult> ToggleActive(Guid hotelId)
+    {
+        try
+        {
+            var result = await _subscriptionService.ToggleActiveAsync(hotelId);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{hotelId:guid}")]
+    [Authorize(Policy = "CanManageHotel")]
     public async Task<IActionResult> Get(Guid hotelId)
     {
         var result = await _subscriptionService.GetSubscriptionAsync(hotelId);

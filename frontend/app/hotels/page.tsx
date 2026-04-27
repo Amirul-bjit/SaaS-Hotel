@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { hotelApi, roomApi } from '@/lib/api';
-import { HotelPublicResponse, HotelResponse, RoomResponse } from '@/types';
+import { hotelApi, roomApi, subscriptionApi } from '@/lib/api';
+import { HotelPublicResponse, HotelResponse, RoomResponse, SubscriptionResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 
 type AnyHotel = HotelPublicResponse | HotelResponse;
@@ -33,7 +33,14 @@ function RoomCard({ room, hotelId }: { room: RoomResponse; hotelId: string }) {
   );
 }
 
-function HotelCard({ hotel, showOwner }: { hotel: AnyHotel; showOwner: boolean }) {
+interface HotelCardProps {
+  hotel: AnyHotel;
+  showOwner: boolean;
+  canAddRoom?: boolean;
+  roomBlockReason?: string;
+}
+
+function HotelCard({ hotel, showOwner, canAddRoom, roomBlockReason }: HotelCardProps) {
   const { user } = useAuth();
   const [rooms, setRooms] = useState<RoomResponse[] | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -71,9 +78,17 @@ function HotelCard({ hotel, showOwner }: { hotel: AnyHotel; showOwner: boolean }
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {user?.role === 'HOTEL_OWNER' && (
-            <Link href={`/hotels/${hotel.id}/rooms/new`}>
-              <Button size="sm" variant="secondary">+ Room</Button>
-            </Link>
+            canAddRoom ? (
+              <Link href={`/hotels/${hotel.id}/rooms/new`}>
+                <Button size="sm" variant="secondary">+ Room</Button>
+              </Link>
+            ) : (
+              <span title={roomBlockReason ?? 'Cannot add rooms'}>
+                <Button size="sm" variant="secondary" disabled className="opacity-50 cursor-not-allowed">
+                  + Room
+                </Button>
+              </span>
+            )
           )}
           <button
             onClick={toggleRooms}
@@ -106,6 +121,8 @@ export default function HotelsPage() {
   const [hotels, setHotels] = useState<AnyHotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [canAddRoom, setCanAddRoom] = useState(false);
+  const [roomBlockReason, setRoomBlockReason] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -115,13 +132,40 @@ export default function HotelsPage() {
       try {
         let data: AnyHotel[];
         if (user!.role === 'SUPER_ADMIN') {
-          data = await hotelApi.getAll();            // full info incl. ownerId
+          data = await hotelApi.getAll();
         } else if (user!.role === 'HOTEL_OWNER' && user!.hotelId) {
-          data = [await hotelApi.getById(user!.hotelId)]; // own hotel, full info
+          data = [await hotelApi.getById(user!.hotelId)];
         } else {
-          data = await hotelApi.browse();            // CUSTOMER: public info only
+          data = await hotelApi.browse();
         }
         setHotels(data);
+
+        // Check room creation eligibility for hotel owners
+        if (user!.role === 'HOTEL_OWNER' && user!.hotelId) {
+          try {
+            const [sub, rooms] = await Promise.all([
+              subscriptionApi.get(user!.hotelId),
+              roomApi.getByHotel(user!.hotelId),
+            ]);
+            const isExpired = new Date(sub.expiryDate) < new Date();
+            if (!sub.isActive) {
+              setRoomBlockReason('Subscription is inactive');
+            } else if (isExpired) {
+              setRoomBlockReason('Subscription has expired');
+            } else if (sub.planConfig?.maxRooms != null) {
+              const currentTotal = rooms.reduce((sum, r) => sum + r.totalRooms, 0);
+              if (currentTotal >= sub.planConfig.maxRooms) {
+                setRoomBlockReason(`Room limit reached (${currentTotal}/${sub.planConfig.maxRooms})`);
+              } else {
+                setCanAddRoom(true);
+              }
+            } else {
+              setCanAddRoom(true);
+            }
+          } catch {
+            setRoomBlockReason('No subscription found');
+          }
+        }
       } catch {
         setError('Failed to load hotels.');
       } finally {
@@ -177,7 +221,13 @@ export default function HotelsPage() {
       ) : (
         <div className="flex flex-col gap-5">
           {hotels.map((hotel) => (
-            <HotelCard key={hotel.id} hotel={hotel} showOwner={user?.role === 'SUPER_ADMIN'} />
+            <HotelCard
+              key={hotel.id}
+              hotel={hotel}
+              showOwner={user?.role === 'SUPER_ADMIN'}
+              canAddRoom={canAddRoom}
+              roomBlockReason={roomBlockReason}
+            />
           ))}
         </div>
       )}

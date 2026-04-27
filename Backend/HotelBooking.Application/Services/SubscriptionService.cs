@@ -81,6 +81,18 @@ public class SubscriptionService : ISubscriptionService
         return MapToResponse(subscription, planConfig);
     }
 
+    public async Task<SubscriptionResponse> ToggleActiveAsync(Guid hotelId)
+    {
+        var subscription = await _subscriptionRepository.GetByHotelIdAsync(hotelId)
+            ?? throw new InvalidOperationException("Hotel does not have a subscription.");
+
+        subscription.IsActive = !subscription.IsActive;
+        await _subscriptionRepository.SaveChangesAsync();
+
+        var planConfig = await _planConfigRepository.GetByPlanTypeAsync(subscription.PlanType);
+        return MapToResponse(subscription, planConfig);
+    }
+
     private static DateTime CalculateExpiry(DateTime from, BillingCycle cycle) =>
         cycle == BillingCycle.Monthly ? from.AddMonths(1) : from.AddYears(1);
 

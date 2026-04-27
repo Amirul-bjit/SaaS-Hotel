@@ -10,7 +10,26 @@ public static class DataSeeder
     public static async Task SeedAsync(ApplicationDbContext context)
     {
         if (await context.Users.AnyAsync()) return;
+        await InsertSeedData(context);
+    }
 
+    public static async Task ResetAndSeedAsync(ApplicationDbContext context)
+    {
+        // Delete all data in dependency order
+        context.Inventories.RemoveRange(context.Inventories);
+        context.Bookings.RemoveRange(context.Bookings);
+        context.Rooms.RemoveRange(context.Rooms);
+        context.Subscriptions.RemoveRange(context.Subscriptions);
+        context.Hotels.RemoveRange(context.Hotels);
+        context.SubscriptionPlanConfigs.RemoveRange(context.SubscriptionPlanConfigs);
+        context.Users.RemoveRange(context.Users);
+        await context.SaveChangesAsync();
+
+        await InsertSeedData(context);
+    }
+
+    private static async Task InsertSeedData(ApplicationDbContext context)
+    {
         var superAdminId = Guid.NewGuid();
         var hotelOwner1Id = Guid.NewGuid();
         var hotelOwner2Id = Guid.NewGuid();

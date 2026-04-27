@@ -9,15 +9,47 @@ public class RoomService : IRoomService
 {
     private readonly IRoomRepository _roomRepository;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly ISubscriptionRepository _subscriptionRepository;
+    private readonly ISubscriptionPlanConfigRepository _planConfigRepository;
 
-    public RoomService(IRoomRepository roomRepository, IInventoryRepository inventoryRepository)
+    public RoomService(
+        IRoomRepository roomRepository,
+        IInventoryRepository inventoryRepository,
+        ISubscriptionRepository subscriptionRepository,
+        ISubscriptionPlanConfigRepository planConfigRepository)
     {
         _roomRepository = roomRepository;
         _inventoryRepository = inventoryRepository;
+        _subscriptionRepository = subscriptionRepository;
+        _planConfigRepository = planConfigRepository;
     }
 
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request, Guid hotelId)
     {
+        // 1. Subscription validation
+        var subscription = await _subscriptionRepository.GetByHotelIdAsync(hotelId);
+        if (subscription == null)
+            throw new InvalidOperationException("Hotel does not have a subscription. A valid subscription is required to create rooms.");
+        if (!subscription.IsActive)
+            throw new InvalidOperationException("Hotel subscription is inactive. Please reactivate your subscription to create rooms.");
+        if (subscription.ExpiryDate < DateTime.UtcNow)
+            throw new InvalidOperationException("Hotel subscription has expired. Please renew your subscription to create rooms.");
+
+        // 2. Duplicate room name check
+        var existingRooms = (await _roomRepository.GetByHotelIdAsync(hotelId)).ToList();
+        if (existingRooms.Any(r => r.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"A room named '{request.Name}' already exists in this hotel.");
+
+        // 3. Max rooms enforcement per subscription plan
+        var planConfig = await _planConfigRepository.GetByPlanTypeAsync(subscription.PlanType);
+        if (planConfig?.MaxRooms != null)
+        {
+            var currentTotal = existingRooms.Sum(r => r.TotalRooms);
+            if (currentTotal + request.TotalRooms > planConfig.MaxRooms.Value)
+                throw new InvalidOperationException(
+                    $"Cannot add {request.TotalRooms} room(s). Your {subscription.PlanType} plan allows a maximum of {planConfig.MaxRooms} total rooms. Currently used: {currentTotal}.");
+        }
+
         var room = new Room
         {
             Id = Guid.NewGuid(),

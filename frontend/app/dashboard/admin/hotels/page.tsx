@@ -49,6 +49,21 @@ export default function HotelsPage() {
   const [deleteTarget, setDeleteTarget] = useState<HotelResponse | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Toggle subscription
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  async function handleToggle(hotelId: string) {
+    setToggling(hotelId);
+    try {
+      const updated = await subscriptionApi.toggleActive(hotelId);
+      setSubscriptions((prev) => ({ ...prev, [hotelId]: updated }));
+    } catch {
+      setError('Failed to toggle subscription status.');
+    } finally {
+      setToggling(null);
+    }
+  }
+
   async function loadAll() {
     try {
       const [h, o] = await Promise.all([hotelApi.getAll(), userApi.getOwners()]);
@@ -155,12 +170,13 @@ export default function HotelsPage() {
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Owner</th>
               <th className="px-4 py-3">Subscription</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {hotels.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hotels found.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hotels found.</td></tr>
             )}
             {hotels.map((h) => (
               <tr key={h.id} className="hover:bg-gray-50 transition-colors">
@@ -171,6 +187,25 @@ export default function HotelsPage() {
                   {subscriptions[h.id]
                     ? <PlanBadge plan={subscriptions[h.id].planType} />
                     : <span className="text-xs text-gray-400">None</span>}
+                </td>
+                <td className="px-4 py-3">
+                  {subscriptions[h.id] ? (
+                    <button
+                      onClick={() => handleToggle(h.id)}
+                      disabled={toggling === h.id}
+                      className="inline-flex items-center gap-2 group"
+                      title={subscriptions[h.id].isActive ? 'Click to deactivate' : 'Click to activate'}
+                    >
+                      <div className={`relative w-9 h-5 rounded-full transition-colors ${subscriptions[h.id].isActive ? 'bg-green-500' : 'bg-gray-300'} ${toggling === h.id ? 'opacity-50' : 'cursor-pointer'}`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${subscriptions[h.id].isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </div>
+                      <span className={`text-xs font-semibold ${subscriptions[h.id].isActive ? 'text-green-700' : 'text-gray-500'}`}>
+                        {toggling === h.id ? '…' : subscriptions[h.id].isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
