@@ -5,9 +5,9 @@ namespace HotelBooking.Application.Interfaces.Repositories;
 public interface IRoomRepository
 {
     Task<Room?> GetByIdAsync(Guid id);
-    Task<Room?> GetByIdWithHotelAsync(Guid id);
+    Task<IEnumerable<Room>> GetByRoomTypeIdAsync(Guid roomTypeId);
     Task<IEnumerable<Room>> GetByHotelIdAsync(Guid hotelId);
-    Task<IEnumerable<Room>> GetAllWithHotelAsync();
     Task AddAsync(Room room);
+    void Delete(Room room);
     Task SaveChangesAsync();
 }

@@ -68,7 +68,7 @@ export default function OwnerDashboard() {
     );
   }
 
-  const totalRoomCount = rooms.reduce((sum, r) => sum + r.totalRooms, 0);
+  const totalRoomCount = rooms.length;
   const confirmedBookings = bookings.filter(b => b.status === 'Confirmed').length;
   const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
   const isExpired = subscription ? new Date(subscription.expiryDate) < new Date() : false;

@@ -7,141 +7,103 @@ using Moq;
 
 namespace HotelBooking.Tests;
 
-public class RoomServiceFeatureFilterTests
+public class RoomServiceTests
 {
     private readonly Mock<IRoomRepository> _roomRepo = new();
-    private readonly Mock<IInventoryRepository> _inventoryRepo = new();
+    private readonly Mock<IRoomTypeRepository> _roomTypeRepo = new();
     private readonly Mock<ISubscriptionRepository> _subscriptionRepo = new();
     private readonly Mock<ISubscriptionPlanConfigRepository> _planConfigRepo = new();
     private readonly RoomService _sut;
 
     private readonly Guid _hotelId = Guid.NewGuid();
-    private readonly Guid _wifiId = Guid.NewGuid();
-    private readonly Guid _poolId = Guid.NewGuid();
+    private readonly Guid _roomTypeId = Guid.NewGuid();
 
-    public RoomServiceFeatureFilterTests()
+    public RoomServiceTests()
     {
         _sut = new RoomService(
             _roomRepo.Object,
-            _inventoryRepo.Object,
+            _roomTypeRepo.Object,
             _subscriptionRepo.Object,
             _planConfigRepo.Object);
     }
 
-    private Room CreateRoomWithFeatures(string name, decimal price, Guid hotelId, params Guid[] featureIds)
+    private RoomType CreateRoomType() => new()
     {
-        var roomTypeId = Guid.NewGuid();
-        return new Room
+        Id = _roomTypeId,
+        HotelId = _hotelId,
+        Name = "Deluxe Suite",
+        Price = 199.99m,
+        MaxGuests = 2
+    };
+
+    private Subscription CreateActiveSubscription() => new()
+    {
+        Id = Guid.NewGuid(),
+        HotelId = _hotelId,
+        PlanType = SubscriptionPlan.Standard,
+        IsActive = true,
+        ExpiryDate = DateTime.UtcNow.AddDays(30)
+    };
+
+    [Fact]
+    public async Task CreateRoomAsync_ValidRequest_ReturnsRoomResponse()
+    {
+        var roomType = CreateRoomType();
+        _roomTypeRepo.Setup(r => r.GetByIdAsync(_roomTypeId)).ReturnsAsync(roomType);
+        _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(CreateActiveSubscription());
+        _planConfigRepo.Setup(p => p.GetByPlanTypeAsync(SubscriptionPlan.Standard))
+            .ReturnsAsync(new SubscriptionPlanConfig { PlanType = SubscriptionPlan.Standard, MaxRooms = 50 });
+        _roomRepo.Setup(r => r.GetByHotelIdAsync(_hotelId)).ReturnsAsync(new List<Room>());
+
+        var request = new CreateRoomRequest { RoomTypeId = _roomTypeId, RoomNumber = "101" };
+        var result = await _sut.CreateRoomAsync(request, _hotelId);
+
+        Assert.NotNull(result);
+        Assert.Equal("101", result.RoomNumber);
+        Assert.Equal("Deluxe Suite", result.RoomTypeName);
+    }
+
+    [Fact]
+    public async Task CreateRoomAsync_NoSubscription_Throws()
+    {
+        _roomTypeRepo.Setup(r => r.GetByIdAsync(_roomTypeId)).ReturnsAsync(CreateRoomType());
+        _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync((Subscription?)null);
+
+        var request = new CreateRoomRequest { RoomTypeId = _roomTypeId, RoomNumber = "101" };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _sut.CreateRoomAsync(request, _hotelId));
+    }
+
+    [Fact]
+    public async Task CreateRoomAsync_WrongHotel_ThrowsUnauthorized()
+    {
+        var roomType = CreateRoomType();
+        roomType.HotelId = Guid.NewGuid(); // different hotel
+        _roomTypeRepo.Setup(r => r.GetByIdAsync(_roomTypeId)).ReturnsAsync(roomType);
+
+        var request = new CreateRoomRequest { RoomTypeId = _roomTypeId, RoomNumber = "101" };
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _sut.CreateRoomAsync(request, _hotelId));
+    }
+
+    [Fact]
+    public async Task GetRoomsByRoomTypeAsync_ReturnsMappedRooms()
+    {
+        var rooms = new List<Room>
         {
-            Id = Guid.NewGuid(),
-            HotelId = hotelId,
-            Name = name,
-            Price = price,
-            TotalRooms = 5,
-            MaxGuests = 2,
-            RoomTypeId = roomTypeId,
-            RoomType = new RoomType
-            {
-                Id = roomTypeId,
-                HotelId = hotelId,
-                Name = name + " Type",
-                BasePrice = price,
-                MaxGuests = 2,
-                RoomTypeFeatures = featureIds.Select(fId => new RoomTypeFeature
-                {
-                    RoomTypeId = roomTypeId,
-                    RoomFeatureId = fId,
-                    RoomFeature = new RoomFeature { Id = fId, Name = fId.ToString(), Icon = "icon" }
-                }).ToList()
-            },
-            Hotel = new Hotel { Id = hotelId, Name = "Test Hotel", Location = "Test City" }
+            new() { Id = Guid.NewGuid(), RoomTypeId = _roomTypeId, RoomNumber = "101",
+                     RoomType = new RoomType { Id = _roomTypeId, Name = "Suite", HotelId = _hotelId, Price = 100, MaxGuests = 2 } },
+            new() { Id = Guid.NewGuid(), RoomTypeId = _roomTypeId, RoomNumber = "102",
+                     RoomType = new RoomType { Id = _roomTypeId, Name = "Suite", HotelId = _hotelId, Price = 100, MaxGuests = 2 } }
         };
-    }
+        _roomRepo.Setup(r => r.GetByRoomTypeIdAsync(_roomTypeId)).ReturnsAsync(rooms);
 
-    [Fact]
-    public async Task GetAllRoomsAsync_WithFeatureFilter_ReturnsOnlyMatchingRooms()
-    {
-        var room1 = CreateRoomWithFeatures("Pool Room", 200, _hotelId, _wifiId, _poolId);
-        var room2 = CreateRoomWithFeatures("Basic Room", 100, _hotelId, _wifiId);
-
-        _subscriptionRepo.Setup(r => r.GetActiveHotelIdsAsync())
-            .ReturnsAsync(new HashSet<Guid> { _hotelId });
-        _roomRepo.Setup(r => r.GetAllWithHotelAsync())
-            .ReturnsAsync(new List<Room> { room1, room2 });
-
-        // Filter by pool feature - only room1 has it
-        var results = (await _sut.GetAllRoomsAsync(null, null, null, null, new List<Guid> { _poolId })).ToList();
-
-        Assert.Single(results);
-        Assert.Equal("Pool Room", results[0].Name);
-    }
-
-    [Fact]
-    public async Task GetAllRoomsAsync_WithMultipleFeatureFilter_RequiresAll()
-    {
-        var room1 = CreateRoomWithFeatures("Pool Room", 200, _hotelId, _wifiId, _poolId);
-        var room2 = CreateRoomWithFeatures("WiFi Room", 100, _hotelId, _wifiId);
-
-        _subscriptionRepo.Setup(r => r.GetActiveHotelIdsAsync())
-            .ReturnsAsync(new HashSet<Guid> { _hotelId });
-        _roomRepo.Setup(r => r.GetAllWithHotelAsync())
-            .ReturnsAsync(new List<Room> { room1, room2 });
-
-        // Filter by both wifi AND pool - only room1 has both
-        var results = (await _sut.GetAllRoomsAsync(null, null, null, null, new List<Guid> { _wifiId, _poolId })).ToList();
-
-        Assert.Single(results);
-        Assert.Equal("Pool Room", results[0].Name);
-    }
-
-    [Fact]
-    public async Task GetAllRoomsAsync_WithNoFeatureFilter_ReturnsAll()
-    {
-        var room1 = CreateRoomWithFeatures("Pool Room", 200, _hotelId, _wifiId, _poolId);
-        var room2 = CreateRoomWithFeatures("Basic Room", 100, _hotelId, _wifiId);
-
-        _subscriptionRepo.Setup(r => r.GetActiveHotelIdsAsync())
-            .ReturnsAsync(new HashSet<Guid> { _hotelId });
-        _roomRepo.Setup(r => r.GetAllWithHotelAsync())
-            .ReturnsAsync(new List<Room> { room1, room2 });
-
-        var results = (await _sut.GetAllRoomsAsync(null, null, null, null, null)).ToList();
+        var results = (await _sut.GetRoomsByRoomTypeAsync(_roomTypeId)).ToList();
 
         Assert.Equal(2, results.Count);
-    }
-
-    [Fact]
-    public async Task GetAllRoomsAsync_ResponseIncludesFeatures()
-    {
-        var room = CreateRoomWithFeatures("Pool Room", 200, _hotelId, _wifiId, _poolId);
-
-        _subscriptionRepo.Setup(r => r.GetActiveHotelIdsAsync())
-            .ReturnsAsync(new HashSet<Guid> { _hotelId });
-        _roomRepo.Setup(r => r.GetAllWithHotelAsync())
-            .ReturnsAsync(new List<Room> { room });
-
-        var results = (await _sut.GetAllRoomsAsync(null, null, null, null, null)).ToList();
-
-        Assert.Single(results);
-        Assert.Equal(2, results[0].Features.Count);
-        Assert.NotNull(results[0].RoomTypeName);
-    }
-
-    [Fact]
-    public async Task GetAllRoomsAsync_CombinedFilters_PriceAndFeatures()
-    {
-        var room1 = CreateRoomWithFeatures("Cheap Pool", 100, _hotelId, _poolId);
-        var room2 = CreateRoomWithFeatures("Expensive Pool", 500, _hotelId, _poolId);
-
-        _subscriptionRepo.Setup(r => r.GetActiveHotelIdsAsync())
-            .ReturnsAsync(new HashSet<Guid> { _hotelId });
-        _roomRepo.Setup(r => r.GetAllWithHotelAsync())
-            .ReturnsAsync(new List<Room> { room1, room2 });
-
-        // Filter: pool + max price 300
-        var results = (await _sut.GetAllRoomsAsync(null, 300m, null, null, new List<Guid> { _poolId })).ToList();
-
-        Assert.Single(results);
-        Assert.Equal("Cheap Pool", results[0].Name);
+        Assert.Equal("101", results[0].RoomNumber);
+        Assert.Equal("102", results[1].RoomNumber);
     }
 }

@@ -12,31 +12,6 @@ public class RoomController : ControllerBase
     private readonly IRoomService _roomService;
     public RoomController(IRoomService roomService) => _roomService = roomService;
 
-    // --- Global marketplace endpoints ---
-
-    [AllowAnonymous]
-    [HttpGet("rooms")]
-    public async Task<IActionResult> GetAllRooms(
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
-        [FromQuery] int? minGuests,
-        [FromQuery] string? location,
-        [FromQuery] List<Guid>? featureIds)
-    {
-        var result = await _roomService.GetAllRoomsAsync(minPrice, maxPrice, minGuests, location, featureIds);
-        return Ok(result);
-    }
-
-    [AllowAnonymous]
-    [HttpGet("rooms/{id:guid}")]
-    public async Task<IActionResult> GetRoomById(Guid id)
-    {
-        var result = await _roomService.GetRoomByIdAsync(id);
-        return result == null ? NotFound() : Ok(result);
-    }
-
-    // --- Hotel-scoped endpoints ---
-
     [HttpPost("hotels/{hotelId:guid}/rooms")]
     [Authorize(Policy = "CanManageHotel")]
     public async Task<IActionResult> Create(Guid hotelId, [FromBody] CreateRoomRequest request)
@@ -53,18 +28,44 @@ public class RoomController : ControllerBase
         }
     }
 
-    [AllowAnonymous]
+    [HttpDelete("hotels/{hotelId:guid}/rooms/{roomId:guid}")]
+    [Authorize(Policy = "CanManageHotel")]
+    public async Task<IActionResult> Delete(Guid hotelId, Guid roomId)
+    {
+        EnforceHotelAccess(hotelId);
+        try
+        {
+            await _roomService.DeleteRoomAsync(roomId, hotelId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("hotels/{hotelId:guid}/rooms")]
+    [Authorize(Policy = "CanManageHotel")]
     public async Task<IActionResult> GetByHotel(Guid hotelId)
     {
+        EnforceHotelAccess(hotelId);
         var result = await _roomService.GetRoomsByHotelAsync(hotelId);
+        return Ok(result);
+    }
+
+    [HttpGet("hotels/{hotelId:guid}/room-types/{roomTypeId:guid}/rooms")]
+    [Authorize(Policy = "CanManageHotel")]
+    public async Task<IActionResult> GetByRoomType(Guid hotelId, Guid roomTypeId)
+    {
+        EnforceHotelAccess(hotelId);
+        var result = await _roomService.GetRoomsByRoomTypeAsync(roomTypeId);
         return Ok(result);
     }
 
     private void EnforceHotelAccess(Guid hotelId)
     {
         var role = User.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        if (role == "SUPER_ADMIN") return; // super admin can manage any hotel
+        if (role == "SUPER_ADMIN") return;
         var hotelClaim = User.Claims.FirstOrDefault(c => c.Type == "hotel_id")?.Value;
         if (hotelClaim == null || !Guid.TryParse(hotelClaim, out var claimedHotelId) || claimedHotelId != hotelId)
             throw new UnauthorizedAccessException("Cannot manage rooms for a different hotel.");

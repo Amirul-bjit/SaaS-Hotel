@@ -49,7 +49,7 @@ export interface RoomFeatureDto {
 export interface CreateRoomTypeRequest {
   name: string;
   description: string;
-  basePrice: number;
+  price: number;
   maxGuests: number;
   featureIds: string[];
 }
@@ -57,7 +57,7 @@ export interface CreateRoomTypeRequest {
 export interface UpdateRoomTypeRequest {
   name: string;
   description: string;
-  basePrice: number;
+  price: number;
   maxGuests: number;
   featureIds: string[];
 }
@@ -67,48 +67,42 @@ export interface RoomTypeResponse {
   hotelId: string;
   name: string;
   description: string;
-  basePrice: number;
+  price: number;
   maxGuests: number;
+  totalRooms: number;
   features: RoomFeatureDto[];
 }
 
-// --- Room ---
-export interface CreateRoomRequest {
-  name: string;
-  price: number;
-  totalRooms: number;
-  maxGuests: number;
-  roomTypeId?: string;
-}
-
-export interface RoomResponse {
-  id: string;
-  hotelId: string;
-  name: string;
-  price: number;
-  totalRooms: number;
-  maxGuests: number;
-  roomTypeId?: string;
-  roomTypeName?: string;
-  features: RoomFeatureDto[];
-}
-
-export interface RoomGlobalResponse {
+export interface RoomTypeGlobalResponse {
   id: string;
   hotelId: string;
   hotelName: string;
   hotelLocation: string;
   name: string;
+  description: string;
   price: number;
-  totalRooms: number;
   maxGuests: number;
-  roomTypeName?: string;
+  totalRooms: number;
+  availableRooms: number;
   features: RoomFeatureDto[];
+}
+
+// --- Room ---
+export interface CreateRoomRequest {
+  roomTypeId: string;
+  roomNumber: string;
+}
+
+export interface RoomResponse {
+  id: string;
+  roomTypeId: string;
+  roomTypeName: string;
+  roomNumber: string;
 }
 
 // --- Booking ---
 export interface CreateBookingRequest {
-  roomId: string;
+  roomTypeId: string;
   checkIn: string; // ISO date string YYYY-MM-DD
   checkOut: string;
 }
@@ -118,6 +112,9 @@ export interface BookingResponse {
   userId: string;
   hotelId: string;
   roomId: string;
+  roomTypeId: string;
+  roomTypeName: string;
+  roomNumber: string;
   checkIn: string;
   checkOut: string;
   status: 'Pending' | 'Confirmed' | 'Cancelled';

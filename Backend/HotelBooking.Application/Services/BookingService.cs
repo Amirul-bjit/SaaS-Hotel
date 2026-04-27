@@ -9,19 +9,19 @@ namespace HotelBooking.Application.Services;
 public class BookingService : IBookingService
 {
     private readonly IBookingRepository _bookingRepository;
+    private readonly IRoomTypeRepository _roomTypeRepository;
     private readonly IRoomRepository _roomRepository;
-    private readonly IInventoryRepository _inventoryRepository;
     private readonly ISubscriptionRepository _subscriptionRepository;
 
     public BookingService(
         IBookingRepository bookingRepository,
+        IRoomTypeRepository roomTypeRepository,
         IRoomRepository roomRepository,
-        IInventoryRepository inventoryRepository,
         ISubscriptionRepository subscriptionRepository)
     {
         _bookingRepository = bookingRepository;
+        _roomTypeRepository = roomTypeRepository;
         _roomRepository = roomRepository;
-        _inventoryRepository = inventoryRepository;
         _subscriptionRepository = subscriptionRepository;
     }
 
@@ -34,52 +34,44 @@ public class BookingService : IBookingService
         if (request.CheckIn < DateOnly.FromDateTime(DateTime.UtcNow))
             throw new ArgumentException("CheckIn cannot be in the past.");
 
-        // 2. Resolve and validate room
-        var room = await _roomRepository.GetByIdAsync(request.RoomId)
-            ?? throw new KeyNotFoundException("Room not found.");
+        // 2. Resolve RoomType
+        var roomType = await _roomTypeRepository.GetByIdAsync(request.RoomTypeId)
+            ?? throw new KeyNotFoundException("Room type not found.");
 
-        // If hotelId is present in JWT (HOTEL_OWNER), enforce ownership.
-        // If null (CUSTOMER), derive hotelId from the room.
-        if (hotelId.HasValue && room.HotelId != hotelId.Value)
-            throw new UnauthorizedAccessException("Room does not belong to your hotel.");
+        var resolvedHotelId = roomType.HotelId;
 
-        var resolvedHotelId = hotelId ?? room.HotelId;
+        // If hotelId is present in JWT (HOTEL_OWNER), enforce ownership
+        if (hotelId.HasValue && resolvedHotelId != hotelId.Value)
+            throw new UnauthorizedAccessException("Room type does not belong to your hotel.");
 
-        // 3. Subscription validation — block bookings for hotels without active subscription
+        // 3. Subscription validation
         var subscription = await _subscriptionRepository.GetByHotelIdAsync(resolvedHotelId);
         if (subscription == null)
             throw new InvalidOperationException("This hotel does not have a subscription. Bookings are unavailable.");
         if (!subscription.IsActive)
             throw new InvalidOperationException("This hotel's subscription is inactive. Bookings are temporarily unavailable.");
         if (subscription.ExpiryDate.AddDays(7) < DateTime.UtcNow)
-            throw new InvalidOperationException("This hotel's subscription has expired and the grace period has ended. Bookings are temporarily unavailable.");
+            throw new InvalidOperationException("This hotel's subscription has expired. Bookings are temporarily unavailable.");
 
-        // 4. Check inventory for each date in range
-        var dates = GetDateRange(request.CheckIn, request.CheckOut).ToList();
-        var inventories = new List<Inventory>();
+        // 4. Find a free room for the requested dates
+        var rooms = (await _roomRepository.GetByRoomTypeIdAsync(request.RoomTypeId)).ToList();
+        if (rooms.Count == 0)
+            throw new InvalidOperationException("No rooms available for this room type.");
 
-        foreach (var date in dates)
-        {
-            var inv = await _inventoryRepository.GetByRoomAndDateAsync(request.RoomId, date)
-                ?? throw new InvalidOperationException($"No inventory found for date {date}.");
+        var roomIds = rooms.Select(r => r.Id).ToList();
+        var bookedRoomIds = await _bookingRepository.GetBookedRoomIdsAsync(roomIds, request.CheckIn, request.CheckOut);
 
-            if (inv.AvailableCount <= 0)
-                throw new InvalidOperationException($"Room not available on {date}.");
+        var freeRoom = rooms.FirstOrDefault(r => !bookedRoomIds.Contains(r.Id))
+            ?? throw new InvalidOperationException($"No rooms available for the selected dates ({request.CheckIn} to {request.CheckOut}).");
 
-            inventories.Add(inv);
-        }
-
-        // 4. Decrement inventory and create booking atomically
-        // (transaction is managed at Infrastructure/DbContext level via UoW SaveChanges)
-        foreach (var inv in inventories)
-            inv.AvailableCount--;
-
+        // 5. Create booking with assigned room
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             HotelId = resolvedHotelId,
-            RoomId = request.RoomId,
+            RoomTypeId = request.RoomTypeId,
+            RoomId = freeRoom.Id,
             CheckIn = request.CheckIn,
             CheckOut = request.CheckOut,
             Status = BookingStatus.Confirmed
@@ -88,7 +80,7 @@ public class BookingService : IBookingService
         await _bookingRepository.AddAsync(booking);
         await _bookingRepository.SaveChangesAsync();
 
-        return MapToResponse(booking);
+        return MapToResponse(booking, roomType.Name, freeRoom.RoomNumber);
     }
 
     public async Task<IEnumerable<BookingResponse>> GetBookingsAsync(Guid userId, Guid? hotelId, UserRole role)
@@ -103,19 +95,23 @@ public class BookingService : IBookingService
             _ => throw new UnauthorizedAccessException("Unknown role.")
         };
 
-        return bookings.Select(MapToResponse);
+        return bookings.Select(b => MapToResponse(b,
+            b.RoomType?.Name ?? string.Empty,
+            b.Room?.RoomNumber ?? string.Empty));
     }
 
-    private static IEnumerable<DateOnly> GetDateRange(DateOnly start, DateOnly end)
-    {
-        for (var d = start; d < end; d = d.AddDays(1))
-            yield return d;
-    }
-
-    private static BookingResponse MapToResponse(Booking b) =>
+    private static BookingResponse MapToResponse(Booking b, string roomTypeName, string roomNumber) =>
         new()
         {
-            Id = b.Id, UserId = b.UserId, HotelId = b.HotelId, RoomId = b.RoomId,
-            CheckIn = b.CheckIn, CheckOut = b.CheckOut, Status = b.Status
+            Id = b.Id,
+            UserId = b.UserId,
+            HotelId = b.HotelId,
+            RoomTypeId = b.RoomTypeId,
+            RoomTypeName = roomTypeName,
+            RoomId = b.RoomId,
+            RoomNumber = roomNumber,
+            CheckIn = b.CheckIn,
+            CheckOut = b.CheckOut,
+            Status = b.Status
         };
 }

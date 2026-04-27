@@ -39,9 +39,8 @@ export default function OwnerRoomsPage() {
           } else if (isExpired) {
             setRoomBlockReason('Subscription has expired');
           } else if (sub.planConfig?.maxRooms != null) {
-            const currentTotal = roomsData.reduce((sum, r) => sum + r.totalRooms, 0);
-            if (currentTotal >= sub.planConfig.maxRooms) {
-              setRoomBlockReason(`Room limit reached (${currentTotal}/${sub.planConfig.maxRooms})`);
+            if (roomsData.length >= sub.planConfig.maxRooms) {
+              setRoomBlockReason(`Room limit reached (${roomsData.length}/${sub.planConfig.maxRooms})`);
             } else {
               setCanAddRoom(true);
             }
@@ -59,6 +58,16 @@ export default function OwnerRoomsPage() {
     }
     load();
   }, [user, authLoading]);
+
+  async function handleDelete(id: string) {
+    if (!user?.hotelId || !confirm('Delete this room?')) return;
+    try {
+      await roomApi.delete(user.hotelId, id);
+      setRooms((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      setError('Failed to delete room.');
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -82,15 +91,13 @@ export default function OwnerRoomsPage() {
     );
   }
 
-  const totalRoomCount = rooms.reduce((sum, r) => sum + r.totalRooms, 0);
-
   return (
     <div className="px-6 py-8 max-w-5xl">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Rooms</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {rooms.length} room type{rooms.length !== 1 ? 's' : ''} · {totalRoomCount} total rooms
+            {rooms.length} physical room{rooms.length !== 1 ? 's' : ''}
             {subscription?.planConfig?.maxRooms != null && (
               <span className="text-gray-400"> / {subscription.planConfig.maxRooms} max</span>
             )}
@@ -120,26 +127,16 @@ export default function OwnerRoomsPage() {
       <Card>
         <Table<RoomResponse & Record<string, unknown>>
           columns={[
-            { key: 'name', header: 'Room Name', render: (r) => (
-              <div>
-                <span className="font-semibold text-gray-800">{r.name}</span>
-                {r.roomTypeName && <span className="ml-2 text-xs text-indigo-600">({r.roomTypeName})</span>}
-              </div>
+            { key: 'roomNumber', header: 'Room Number', render: (r) => (
+              <span className="font-semibold text-gray-800">{r.roomNumber}</span>
             )},
-            { key: 'price', header: 'Price / Night', render: (r) => <span className="font-bold text-blue-700">${r.price}</span> },
-            { key: 'totalRooms', header: 'Total Rooms', render: (r) => <span className="font-semibold text-gray-700">{r.totalRooms}</span> },
-            { key: 'maxGuests', header: 'Max Guests', render: (r) => <span className="text-gray-600">{r.maxGuests}</span> },
-            { key: 'features', header: 'Features', render: (r) => (
-              <div className="flex flex-wrap gap-1">
-                {r.features && r.features.length > 0
-                  ? r.features.map((f: { id: string; name: string }) => (
-                      <span key={f.id} className="inline-flex items-center rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-700 ring-1 ring-purple-100">
-                        {f.name}
-                      </span>
-                    ))
-                  : <span className="text-xs text-gray-400">None</span>
-                }
-              </div>
+            { key: 'roomTypeName', header: 'Room Type', render: (r) => (
+              <span className="text-indigo-600 font-medium">{r.roomTypeName}</span>
+            )},
+            { key: 'actions', header: '', render: (r) => (
+              <Button size="sm" variant="secondary" onClick={() => handleDelete(r.id)} className="text-red-600 hover:text-red-700">
+                Delete
+              </Button>
             )},
           ]}
           data={rooms as unknown as (RoomResponse & Record<string, unknown>)[]}

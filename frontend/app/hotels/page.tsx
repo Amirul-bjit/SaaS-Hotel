@@ -4,21 +4,26 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { hotelApi, roomApi, subscriptionApi } from '@/lib/api';
-import { HotelPublicResponse, HotelResponse, RoomResponse } from '@/types';
+import { hotelApi, roomApi, roomTypeApi, subscriptionApi } from '@/lib/api';
+import { HotelPublicResponse, HotelResponse, RoomTypeResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 
 type AnyHotel = HotelPublicResponse | HotelResponse;
 
-function RoomCard({ room }: { room: RoomResponse }) {
+function RoomTypeCard({ roomType }: { roomType: RoomTypeResponse }) {
   const { user } = useAuth();
   const router = useRouter();
 
-  function handleBook() {
-    if (!user) {
-      router.push(`/login?returnUrl=${encodeURIComponent(`/booking/${room.id}`)}`);
+  const isOwner = user?.role === 'HOTEL_OWNER';
+  const isAdmin = user?.role === 'SUPER_ADMIN';
+
+  function handleAction() {
+    if (isOwner || isAdmin) {
+      router.push(`/rooms/${roomType.id}`);
+    } else if (!user) {
+      router.push(`/login?returnUrl=${encodeURIComponent(`/booking/${roomType.id}`)}`);
     } else {
-      router.push(`/booking/${room.id}`);
+      router.push(`/booking/${roomType.id}`);
     }
   }
 
@@ -26,26 +31,35 @@ function RoomCard({ room }: { room: RoomResponse }) {
     <div className="group relative rounded-xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h4 className="font-semibold text-gray-900 truncate">{room.name}</h4>
+          <h4 className="font-semibold text-gray-900 truncate">{roomType.name}</h4>
+          {roomType.description && (
+            <p className="mt-1 text-xs text-gray-500 line-clamp-2">{roomType.description}</p>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
               <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-              Up to {room.maxGuests}
+              Up to {roomType.maxGuests}
             </span>
             <span className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
               <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-              {room.totalRooms} rooms
+              {roomType.totalRooms} rooms
             </span>
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-2xl font-bold text-gray-900">${room.price}</div>
+          <div className="text-2xl font-bold text-gray-900">${roomType.price}</div>
           <div className="text-xs text-gray-400 font-medium">per night</div>
         </div>
       </div>
-      <Button onClick={handleBook} className="mt-4 w-full" size="sm">
-        {user ? 'Book Now' : 'Sign in to Book'}
-      </Button>
+      {isOwner || isAdmin ? (
+        <Button onClick={handleAction} variant="secondary" className="mt-4 w-full" size="sm">
+          View Details
+        </Button>
+      ) : (
+        <Button onClick={handleAction} className="mt-4 w-full" size="sm">
+          {user ? 'Book Now' : 'Sign in to Book'}
+        </Button>
+      )}
     </div>
   );
 }
@@ -59,17 +73,17 @@ interface HotelCardProps {
 
 function HotelCard({ hotel, showOwner, canAddRoom, roomBlockReason }: HotelCardProps) {
   const { user } = useAuth();
-  const [rooms, setRooms] = useState<RoomResponse[] | null>(null);
+  const [roomTypes, setRoomTypes] = useState<RoomTypeResponse[] | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
   async function toggleRooms() {
-    if (!expanded && rooms === null) {
+    if (!expanded && roomTypes === null) {
       setLoadingRooms(true);
       try {
-        setRooms(await roomApi.getByHotel(hotel.id));
+        setRoomTypes(await roomTypeApi.getByHotel(hotel.id));
       } catch {
-        setRooms([]);
+        setRoomTypes([]);
       } finally {
         setLoadingRooms(false);
       }
@@ -138,21 +152,21 @@ function HotelCard({ hotel, showOwner, canAddRoom, roomBlockReason }: HotelCardP
         </div>
       </div>
 
-      {/* Rooms expansion */}
-      {expanded && rooms !== null && (
+      {/* Room Types expansion */}
+      {expanded && roomTypes !== null && (
         <div className="border-t border-gray-100 bg-gradient-to-b from-gray-50 to-white p-6">
-          {rooms.length === 0 ? (
+          {roomTypes.length === 0 ? (
             <div className="text-center py-8">
               <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                 <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
               </div>
-              <p className="text-sm font-medium text-gray-500">No rooms available yet</p>
+              <p className="text-sm font-medium text-gray-500">No room types available yet</p>
               <p className="text-xs text-gray-400 mt-1">Check back later for availability</p>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
+              {roomTypes.map((rt) => (
+                <RoomTypeCard key={rt.id} roomType={rt} />
               ))}
             </div>
           )}
@@ -199,7 +213,7 @@ export default function HotelsPage() {
             } else if (isExpired) {
               setRoomBlockReason('Subscription has expired');
             } else if (sub.planConfig?.maxRooms != null) {
-              const currentTotal = rooms.reduce((sum, r) => sum + r.totalRooms, 0);
+              const currentTotal = rooms.length;
               if (currentTotal >= sub.planConfig.maxRooms) {
                 setRoomBlockReason(`Room limit reached (${currentTotal}/${sub.planConfig.maxRooms})`);
               } else {
@@ -253,7 +267,7 @@ export default function HotelsPage() {
               {!user && (
                 <Link href="/rooms">
                   <Button className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm">
-                    Browse All Rooms
+                    Browse All Room Types
                   </Button>
                 </Link>
               )}

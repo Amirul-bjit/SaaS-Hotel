@@ -27,7 +27,7 @@ export default function OwnerRoomTypesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formBasePrice, setFormBasePrice] = useState('');
+  const [formPrice, setFormPrice] = useState('');
   const [formMaxGuests, setFormMaxGuests] = useState('');
   const [formFeatureIds, setFormFeatureIds] = useState<string[]>([]);
   const [formLoading, setFormLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function OwnerRoomTypesPage() {
     setEditingId(null);
     setFormName('');
     setFormDesc('');
-    setFormBasePrice('');
+    setFormPrice('');
     setFormMaxGuests('');
     setFormFeatureIds([]);
     setFormError('');
@@ -73,7 +73,7 @@ export default function OwnerRoomTypesPage() {
     setEditingId(rt.id);
     setFormName(rt.name);
     setFormDesc(rt.description);
-    setFormBasePrice(String(rt.basePrice));
+    setFormPrice(String(rt.price));
     setFormMaxGuests(String(rt.maxGuests));
     setFormFeatureIds(rt.features.map((f) => f.id));
     setShowForm(true);
@@ -95,7 +95,7 @@ export default function OwnerRoomTypesPage() {
       const data = {
         name: formName,
         description: formDesc,
-        basePrice: parseFloat(formBasePrice),
+        price: parseFloat(formPrice),
         maxGuests: parseInt(formMaxGuests, 10),
         featureIds: formFeatureIds,
       };
@@ -167,7 +167,7 @@ export default function OwnerRoomTypesPage() {
               <Input label="Name" value={formName} onChange={(e) => setFormName(e.target.value)} required placeholder="Ocean Pool Villa" />
               <Input label="Description" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Luxury villa with private pool" />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Base Price ($)" type="number" min="0" step="0.01" value={formBasePrice} onChange={(e) => setFormBasePrice(e.target.value)} required placeholder="299.99" />
+                <Input label="Price ($)" type="number" min="0" step="0.01" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} required placeholder="299.99" />
                 <Input label="Max Guests" type="number" min="1" value={formMaxGuests} onChange={(e) => setFormMaxGuests(e.target.value)} required placeholder="4" />
               </div>
               {allFeatures.length > 0 && (
@@ -219,7 +219,7 @@ export default function OwnerRoomTypesPage() {
                     {rt.description && <p className="text-xs text-gray-500 mt-0.5">{rt.description}</p>}
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">${rt.basePrice}</div>
+                    <div className="text-lg font-bold text-gray-900">${rt.price}</div>
                     <div className="text-xs text-gray-400">per night</div>
                   </div>
                 </div>

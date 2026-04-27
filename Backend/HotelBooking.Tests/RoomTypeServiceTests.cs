@@ -10,13 +10,14 @@ public class RoomTypeServiceTests
 {
     private readonly Mock<IRoomTypeRepository> _roomTypeRepo = new();
     private readonly Mock<IRoomFeatureRepository> _featureRepo = new();
+    private readonly Mock<ISubscriptionRepository> _subscriptionRepo = new();
     private readonly RoomTypeService _sut;
 
     private readonly Guid _hotelId = Guid.NewGuid();
 
     public RoomTypeServiceTests()
     {
-        _sut = new RoomTypeService(_roomTypeRepo.Object, _featureRepo.Object);
+        _sut = new RoomTypeService(_roomTypeRepo.Object, _featureRepo.Object, _subscriptionRepo.Object);
     }
 
     [Fact]
@@ -29,7 +30,7 @@ public class RoomTypeServiceTests
         {
             Name = "Deluxe Suite",
             Description = "A premium suite",
-            BasePrice = 299.99m,
+            Price = 299.99m,
             MaxGuests = 4,
             FeatureIds = new List<Guid> { featureId1, featureId2 }
         };
@@ -66,7 +67,7 @@ public class RoomTypeServiceTests
 
         // Assert
         Assert.Equal("Deluxe Suite", result.Name);
-        Assert.Equal(299.99m, result.BasePrice);
+        Assert.Equal(299.99m, result.Price);
         Assert.Equal(4, result.MaxGuests);
         Assert.Equal(2, result.Features.Count);
         Assert.Contains(result.Features, f => f.Name == "WiFi");
@@ -82,7 +83,7 @@ public class RoomTypeServiceTests
         {
             Name = "Standard Room",
             Description = "Basic room",
-            BasePrice = 99.99m,
+            Price = 99.99m,
             MaxGuests = 2,
             FeatureIds = new List<Guid>()
         };
@@ -113,7 +114,7 @@ public class RoomTypeServiceTests
 
         var request = new UpdateRoomTypeRequest
         {
-            Name = "Updated", Description = "", BasePrice = 100, MaxGuests = 2,
+            Name = "Updated", Description = "", Price = 100, MaxGuests = 2,
             FeatureIds = new List<Guid>()
         };
 
@@ -135,7 +136,7 @@ public class RoomTypeServiceTests
 
         var request = new UpdateRoomTypeRequest
         {
-            Name = "Updated", Description = "", BasePrice = 100, MaxGuests = 2,
+            Name = "Updated", Description = "", Price = 100, MaxGuests = 2,
             FeatureIds = new List<Guid>()
         };
 
@@ -185,7 +186,7 @@ public class RoomTypeServiceTests
             new()
             {
                 Id = Guid.NewGuid(), HotelId = _hotelId, Name = "Suite", Description = "Nice",
-                BasePrice = 200, MaxGuests = 3,
+                Price = 200, MaxGuests = 3,
                 RoomTypeFeatures = new List<RoomTypeFeature>
                 {
                     new() { RoomFeatureId = featureId, RoomFeature = new RoomFeature { Id = featureId, Name = "WiFi", Icon = "wifi" } }

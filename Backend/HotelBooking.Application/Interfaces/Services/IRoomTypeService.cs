@@ -9,4 +9,9 @@ public interface IRoomTypeService
     Task DeleteAsync(Guid id, Guid hotelId);
     Task<IEnumerable<RoomTypeResponse>> GetByHotelAsync(Guid hotelId);
     Task<RoomTypeResponse?> GetByIdAsync(Guid id);
+    // Marketplace
+    Task<IEnumerable<RoomTypeGlobalResponse>> GetAllForMarketplaceAsync(
+        decimal? minPrice, decimal? maxPrice, int? minGuests, string? location,
+        List<Guid>? featureIds, DateOnly? checkIn, DateOnly? checkOut);
+    Task<RoomTypeGlobalResponse?> GetByIdForMarketplaceAsync(Guid id, DateOnly? checkIn, DateOnly? checkOut);
 }

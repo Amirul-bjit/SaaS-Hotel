@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelBooking.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260427062952_AddRoomTypesAndFeatures")]
-    partial class AddRoomTypesAndFeatures
+    [Migration("20260427083024_InitialRestructure")]
+    partial class InitialRestructure
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -43,6 +43,9 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("RoomTypeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
@@ -55,6 +58,8 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.HasIndex("HotelId");
 
                     b.HasIndex("RoomId");
+
+                    b.HasIndex("RoomTypeId");
 
                     b.HasIndex("UserId");
 
@@ -86,59 +91,23 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.ToTable("Hotels");
                 });
 
-            modelBuilder.Entity("HotelBooking.Domain.Entities.Inventory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AvailableCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("RoomId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoomId", "Date")
-                        .IsUnique();
-
-                    b.ToTable("Inventories");
-                });
-
             modelBuilder.Entity("HotelBooking.Domain.Entities.Room", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("HotelId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("MaxGuests")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("RoomNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("RoomTypeId")
+                    b.Property<Guid>("RoomTypeId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("TotalRooms")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HotelId");
-
-                    b.HasIndex("RoomTypeId");
+                    b.HasIndex("RoomTypeId", "RoomNumber")
+                        .IsUnique();
 
                     b.ToTable("Rooms");
                 });
@@ -245,9 +214,6 @@ namespace HotelBooking.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("BasePrice")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -261,6 +227,9 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -399,6 +368,12 @@ namespace HotelBooking.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("HotelBooking.Domain.Entities.RoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("HotelBooking.Domain.Entities.User", "User")
                         .WithMany("Bookings")
                         .HasForeignKey("UserId")
@@ -408,6 +383,8 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.Navigation("Hotel");
 
                     b.Navigation("Room");
+
+                    b.Navigation("RoomType");
 
                     b.Navigation("User");
                 });
@@ -423,31 +400,13 @@ namespace HotelBooking.Infrastructure.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("HotelBooking.Domain.Entities.Inventory", b =>
-                {
-                    b.HasOne("HotelBooking.Domain.Entities.Room", "Room")
-                        .WithMany("Inventories")
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Room");
-                });
-
             modelBuilder.Entity("HotelBooking.Domain.Entities.Room", b =>
                 {
-                    b.HasOne("HotelBooking.Domain.Entities.Hotel", "Hotel")
-                        .WithMany("Rooms")
-                        .HasForeignKey("HotelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("HotelBooking.Domain.Entities.RoomType", "RoomType")
                         .WithMany("Rooms")
                         .HasForeignKey("RoomTypeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Hotel");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("RoomType");
                 });
@@ -499,16 +458,12 @@ namespace HotelBooking.Infrastructure.Migrations
 
                     b.Navigation("RoomTypes");
 
-                    b.Navigation("Rooms");
-
                     b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("HotelBooking.Domain.Entities.Room", b =>
                 {
                     b.Navigation("Bookings");
-
-                    b.Navigation("Inventories");
                 });
 
             modelBuilder.Entity("HotelBooking.Domain.Entities.RoomFeature", b =>

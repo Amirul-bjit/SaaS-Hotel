@@ -16,11 +16,10 @@ public static class DataSeeder
     public static async Task ResetAndSeedAsync(ApplicationDbContext context)
     {
         // Delete all data in dependency order
-        context.RoomTypeFeatures.RemoveRange(context.RoomTypeFeatures);
-        context.RoomTypes.RemoveRange(context.RoomTypes);
-        context.Inventories.RemoveRange(context.Inventories);
         context.Bookings.RemoveRange(context.Bookings);
         context.Rooms.RemoveRange(context.Rooms);
+        context.RoomTypeFeatures.RemoveRange(context.RoomTypeFeatures);
+        context.RoomTypes.RemoveRange(context.RoomTypes);
         context.Subscriptions.RemoveRange(context.Subscriptions);
         context.Hotels.RemoveRange(context.Hotels);
         context.SubscriptionPlanConfigs.RemoveRange(context.SubscriptionPlanConfigs);
@@ -85,27 +84,9 @@ public static class DataSeeder
         };
 
         // --- Hotels ---
-        var hotel1 = new Hotel
-        {
-            Id = hotel1Id,
-            Name = "Grand Horizon Hotel",
-            OwnerId = hotelOwner1Id,
-            Location = "New York, USA"
-        };
-        var hotel2 = new Hotel
-        {
-            Id = hotel2Id,
-            Name = "Azure Beach Resort",
-            OwnerId = hotelOwner2Id,
-            Location = "Miami, USA"
-        };
-        var hotel3 = new Hotel
-        {
-            Id = hotel3Id,
-            Name = "Mountain View Lodge",
-            OwnerId = hotelOwner3Id,
-            Location = "Denver, USA"
-        };
+        var hotel1 = new Hotel { Id = hotel1Id, Name = "Grand Horizon Hotel", OwnerId = hotelOwner1Id, Location = "New York, USA" };
+        var hotel2 = new Hotel { Id = hotel2Id, Name = "Azure Beach Resort", OwnerId = hotelOwner2Id, Location = "Miami, USA" };
+        var hotel3 = new Hotel { Id = hotel3Id, Name = "Mountain View Lodge", OwnerId = hotelOwner3Id, Location = "Denver, USA" };
 
         // --- Feature IDs (must match HasData in DbContext) ---
         var wifiId = Guid.Parse("a1000000-0000-0000-0000-000000000001");
@@ -122,42 +103,37 @@ public static class DataSeeder
         var kitchenId = Guid.Parse("a1000000-0000-0000-0000-00000000000c");
 
         // --- Room Types ---
-        var rt1 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Deluxe Suite", Description = "Premium suite with city views", BasePrice = 199.99m, MaxGuests = 2 };
-        var rt2 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Executive Room", Description = "Business-ready room", BasePrice = 149.99m, MaxGuests = 2 };
-        var rt3 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Family Suite", Description = "Spacious family accommodation", BasePrice = 299.99m, MaxGuests = 4 };
-        var rt4 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Ocean View Room", Description = "Room with stunning ocean views", BasePrice = 249.99m, MaxGuests = 2 };
-        var rt5 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Beachfront Villa", Description = "Luxury villa on the beach", BasePrice = 499.99m, MaxGuests = 6 };
-        var rt6 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Standard Room", Description = "Comfortable standard room", BasePrice = 99.99m, MaxGuests = 2 };
-        var rt7 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel3Id, Name = "Mountain Cabin", Description = "Cozy mountain retreat", BasePrice = 179.99m, MaxGuests = 3 };
-        var rt8 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel3Id, Name = "Luxury Chalet", Description = "Premium mountain chalet", BasePrice = 349.99m, MaxGuests = 5 };
+        var rt1 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Deluxe Suite", Description = "Premium suite with city views", Price = 199.99m, MaxGuests = 2 };
+        var rt2 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Executive Room", Description = "Business-ready room", Price = 149.99m, MaxGuests = 2 };
+        var rt3 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel1Id, Name = "Family Suite", Description = "Spacious family accommodation", Price = 299.99m, MaxGuests = 4 };
+        var rt4 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Ocean View Room", Description = "Room with stunning ocean views", Price = 249.99m, MaxGuests = 2 };
+        var rt5 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Beachfront Villa", Description = "Luxury villa on the beach", Price = 499.99m, MaxGuests = 6 };
+        var rt6 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel2Id, Name = "Standard Room", Description = "Comfortable standard room", Price = 99.99m, MaxGuests = 2 };
+        var rt7 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel3Id, Name = "Mountain Cabin", Description = "Cozy mountain retreat", Price = 179.99m, MaxGuests = 3 };
+        var rt8 = new RoomType { Id = Guid.NewGuid(), HotelId = hotel3Id, Name = "Luxury Chalet", Description = "Premium mountain chalet", Price = 349.99m, MaxGuests = 5 };
 
-        // --- RoomType Features (many-to-many) ---
+        // --- RoomType Features ---
         var roomTypeFeatures = new List<RoomTypeFeature>
         {
-            // Deluxe Suite: WiFi, AC, Room Service, Mini Bar, Balcony
             new() { RoomTypeId = rt1.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt1.Id, RoomFeatureId = acId },
             new() { RoomTypeId = rt1.Id, RoomFeatureId = roomServiceId },
             new() { RoomTypeId = rt1.Id, RoomFeatureId = miniBarId },
             new() { RoomTypeId = rt1.Id, RoomFeatureId = balconyId },
-            // Executive Room: WiFi, AC, Gym, Breakfast
             new() { RoomTypeId = rt2.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt2.Id, RoomFeatureId = acId },
             new() { RoomTypeId = rt2.Id, RoomFeatureId = gymId },
             new() { RoomTypeId = rt2.Id, RoomFeatureId = breakfastId },
-            // Family Suite: WiFi, AC, Kitchen, Parking, Breakfast
             new() { RoomTypeId = rt3.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt3.Id, RoomFeatureId = acId },
             new() { RoomTypeId = rt3.Id, RoomFeatureId = kitchenId },
             new() { RoomTypeId = rt3.Id, RoomFeatureId = parkingId },
             new() { RoomTypeId = rt3.Id, RoomFeatureId = breakfastId },
-            // Ocean View Room: WiFi, AC, Sea View, Balcony, Breakfast
             new() { RoomTypeId = rt4.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt4.Id, RoomFeatureId = acId },
             new() { RoomTypeId = rt4.Id, RoomFeatureId = seaViewId },
             new() { RoomTypeId = rt4.Id, RoomFeatureId = balconyId },
             new() { RoomTypeId = rt4.Id, RoomFeatureId = breakfastId },
-            // Beachfront Villa: WiFi, Pool, Sea View, AC, Spa, Kitchen, Room Service, Mini Bar
             new() { RoomTypeId = rt5.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt5.Id, RoomFeatureId = poolId },
             new() { RoomTypeId = rt5.Id, RoomFeatureId = seaViewId },
@@ -166,14 +142,11 @@ public static class DataSeeder
             new() { RoomTypeId = rt5.Id, RoomFeatureId = kitchenId },
             new() { RoomTypeId = rt5.Id, RoomFeatureId = roomServiceId },
             new() { RoomTypeId = rt5.Id, RoomFeatureId = miniBarId },
-            // Standard Room: WiFi, AC
             new() { RoomTypeId = rt6.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt6.Id, RoomFeatureId = acId },
-            // Mountain Cabin: WiFi, Parking, Balcony
             new() { RoomTypeId = rt7.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt7.Id, RoomFeatureId = parkingId },
             new() { RoomTypeId = rt7.Id, RoomFeatureId = balconyId },
-            // Luxury Chalet: WiFi, Pool, Spa, Kitchen, Parking, Gym
             new() { RoomTypeId = rt8.Id, RoomFeatureId = wifiId },
             new() { RoomTypeId = rt8.Id, RoomFeatureId = poolId },
             new() { RoomTypeId = rt8.Id, RoomFeatureId = spaId },
@@ -182,29 +155,29 @@ public static class DataSeeder
             new() { RoomTypeId = rt8.Id, RoomFeatureId = gymId },
         };
 
-        // --- Rooms (linked to room types) ---
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var rooms = new List<(Room Room, int Count)>
+        // --- Physical Rooms (individual units with room numbers) ---
+        var rooms = new List<Room>();
+        void AddRooms(RoomType rt, int count, int startNum)
         {
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel1Id, RoomTypeId = rt1.Id, Name = "Deluxe Suite", Price = 199.99m, TotalRooms = 5, MaxGuests = 2 }, 5),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel1Id, RoomTypeId = rt2.Id, Name = "Executive Room", Price = 149.99m, TotalRooms = 8, MaxGuests = 2 }, 8),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel1Id, RoomTypeId = rt3.Id, Name = "Family Suite", Price = 299.99m, TotalRooms = 3, MaxGuests = 4 }, 3),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel2Id, RoomTypeId = rt4.Id, Name = "Ocean View Room", Price = 249.99m, TotalRooms = 10, MaxGuests = 2 }, 10),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel2Id, RoomTypeId = rt5.Id, Name = "Beachfront Villa", Price = 499.99m, TotalRooms = 2, MaxGuests = 6 }, 2),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel2Id, RoomTypeId = rt6.Id, Name = "Standard Room", Price = 99.99m, TotalRooms = 15, MaxGuests = 2 }, 15),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel3Id, RoomTypeId = rt7.Id, Name = "Mountain Cabin", Price = 179.99m, TotalRooms = 6, MaxGuests = 3 }, 6),
-            (new Room { Id = Guid.NewGuid(), HotelId = hotel3Id, RoomTypeId = rt8.Id, Name = "Luxury Chalet", Price = 349.99m, TotalRooms = 4, MaxGuests = 5 }, 4),
-        };
+            for (int i = 0; i < count; i++)
+                rooms.Add(new Room { Id = Guid.NewGuid(), RoomTypeId = rt.Id, RoomNumber = $"{startNum + i}" });
+        }
 
-        var inventories = rooms.SelectMany(rt =>
-            Enumerable.Range(0, 60).Select(i => new Inventory
-            {
-                Id = Guid.NewGuid(),
-                RoomId = rt.Room.Id,
-                Date = today.AddDays(i),
-                AvailableCount = rt.Count
-            })).ToList();
+        // Grand Horizon Hotel: floors 1xx, 2xx, 3xx
+        AddRooms(rt1, 5, 101);  // Deluxe Suite: 101-105
+        AddRooms(rt2, 8, 201);  // Executive Room: 201-208
+        AddRooms(rt3, 3, 301);  // Family Suite: 301-303
+
+        // Azure Beach Resort: floors 1xx, 2xx, 3xx
+        AddRooms(rt4, 10, 101); // Ocean View Room: 101-110
+        AddRooms(rt5, 2, 201);  // Beachfront Villa: 201-202
+        AddRooms(rt6, 15, 301); // Standard Room: 301-315
+
+        // Mountain View Lodge: cabins C1-C6, chalets CH1-CH4
+        for (int i = 1; i <= 6; i++)
+            rooms.Add(new Room { Id = Guid.NewGuid(), RoomTypeId = rt7.Id, RoomNumber = $"C{i}" });
+        for (int i = 1; i <= 4; i++)
+            rooms.Add(new Room { Id = Guid.NewGuid(), RoomTypeId = rt8.Id, RoomNumber = $"CH{i}" });
 
         // --- Subscriptions ---
         var subscriptions = new List<Subscription>
@@ -218,8 +191,7 @@ public static class DataSeeder
         await context.Hotels.AddRangeAsync(hotel1, hotel2, hotel3);
         await context.RoomTypes.AddRangeAsync(rt1, rt2, rt3, rt4, rt5, rt6, rt7, rt8);
         await context.RoomTypeFeatures.AddRangeAsync(roomTypeFeatures);
-        await context.Rooms.AddRangeAsync(rooms.Select(r => r.Room));
-        await context.Inventories.AddRangeAsync(inventories);
+        await context.Rooms.AddRangeAsync(rooms);
         await context.Subscriptions.AddRangeAsync(subscriptions);
         await context.SaveChangesAsync();
     }

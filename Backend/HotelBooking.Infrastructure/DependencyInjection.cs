@@ -22,7 +22,6 @@ public static class DependencyInjection
         services.AddScoped<IHotelRepository, HotelRepository>();
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionPlanConfigRepository, SubscriptionPlanConfigRepository>();
         services.AddScoped<IRoomTypeRepository, RoomTypeRepository>();

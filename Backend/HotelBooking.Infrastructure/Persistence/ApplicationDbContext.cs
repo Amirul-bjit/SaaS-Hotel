@@ -10,7 +10,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Hotel> Hotels => Set<Hotel>();
     public DbSet<Room> Rooms => Set<Room>();
-    public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<SubscriptionPlanConfig> SubscriptionPlanConfigs => Set<SubscriptionPlanConfig>();
@@ -41,21 +40,17 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Room>(e =>
         {
             e.HasKey(r => r.Id);
-            e.Property(r => r.Price).HasColumnType("decimal(18,2)");
-            e.HasOne(r => r.Hotel)
-             .WithMany(h => h.Rooms)
-             .HasForeignKey(r => r.HotelId)
-             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.RoomTypeId, r.RoomNumber }).IsUnique();
             e.HasOne(r => r.RoomType)
              .WithMany(rt => rt.Rooms)
              .HasForeignKey(r => r.RoomTypeId)
-             .OnDelete(DeleteBehavior.SetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RoomType>(e =>
         {
             e.HasKey(rt => rt.Id);
-            e.Property(rt => rt.BasePrice).HasColumnType("decimal(18,2)");
+            e.Property(rt => rt.Price).HasColumnType("decimal(18,2)");
             e.HasOne(rt => rt.Hotel)
              .WithMany(h => h.RoomTypes)
              .HasForeignKey(rt => rt.HotelId)
@@ -81,15 +76,6 @@ public class ApplicationDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Inventory>(e =>
-        {
-            e.HasKey(i => i.Id);
-            e.HasIndex(i => new { i.RoomId, i.Date }).IsUnique();
-            e.HasOne(i => i.Room)
-             .WithMany(r => r.Inventories)
-             .HasForeignKey(i => i.RoomId)
-             .OnDelete(DeleteBehavior.Cascade);
-        });
 
         modelBuilder.Entity<Booking>(e =>
         {
@@ -102,6 +88,10 @@ public class ApplicationDbContext : DbContext
             e.HasOne(b => b.Hotel)
              .WithMany(h => h.Bookings)
              .HasForeignKey(b => b.HotelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.RoomType)
+             .WithMany()
+             .HasForeignKey(b => b.RoomTypeId)
              .OnDelete(DeleteBehavior.Restrict);
             e.HasOne(b => b.Room)
              .WithMany(r => r.Bookings)

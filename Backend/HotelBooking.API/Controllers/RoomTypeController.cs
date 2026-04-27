@@ -68,6 +68,24 @@ public class RoomTypeController : ControllerBase
         }
     }
 
+    // --- Marketplace endpoints (public) ---
+
+    [AllowAnonymous]
+    [HttpGet("room-types")]
+    public async Task<IActionResult> GetAllForMarketplace(
+        [FromQuery] decimal? minPrice,
+        [FromQuery] decimal? maxPrice,
+        [FromQuery] int? minGuests,
+        [FromQuery] string? location,
+        [FromQuery] List<Guid>? featureIds,
+        [FromQuery] DateOnly? checkIn,
+        [FromQuery] DateOnly? checkOut)
+    {
+        var result = await _roomTypeService.GetAllForMarketplaceAsync(
+            minPrice, maxPrice, minGuests, location, featureIds, checkIn, checkOut);
+        return Ok(result);
+    }
+
     [AllowAnonymous]
     [HttpGet("hotels/{hotelId:guid}/room-types")]
     public async Task<IActionResult> GetByHotel(Guid hotelId)
@@ -78,9 +96,11 @@ public class RoomTypeController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("room-types/{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id,
+        [FromQuery] DateOnly? checkIn,
+        [FromQuery] DateOnly? checkOut)
     {
-        var result = await _roomTypeService.GetByIdAsync(id);
+        var result = await _roomTypeService.GetByIdForMarketplaceAsync(id, checkIn, checkOut);
         return result == null ? NotFound() : Ok(result);
     }
 

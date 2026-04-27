@@ -9,7 +9,6 @@ public class Hotel
 
     // Navigation
     public User Owner { get; set; } = null!;
-    public ICollection<Room> Rooms { get; set; } = new List<Room>();
     public ICollection<RoomType> RoomTypes { get; set; } = new List<RoomType>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public Subscription? Subscription { get; set; }

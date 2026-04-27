@@ -19,11 +19,30 @@ public class RoomTypeRepository : IRoomTypeRepository
                 .ThenInclude(rtf => rtf.RoomFeature)
             .FirstOrDefaultAsync(rt => rt.Id == id);
 
+    public Task<RoomType?> GetByIdWithFeaturesAndRoomsAsync(Guid id) =>
+        _context.RoomTypes
+            .Include(rt => rt.RoomTypeFeatures)
+                .ThenInclude(rtf => rtf.RoomFeature)
+            .Include(rt => rt.Rooms)
+                .ThenInclude(r => r.Bookings)
+            .Include(rt => rt.Hotel)
+            .FirstOrDefaultAsync(rt => rt.Id == id);
+
     public async Task<IEnumerable<RoomType>> GetByHotelIdAsync(Guid hotelId) =>
         await _context.RoomTypes
             .Where(rt => rt.HotelId == hotelId)
             .Include(rt => rt.RoomTypeFeatures)
                 .ThenInclude(rtf => rtf.RoomFeature)
+            .Include(rt => rt.Rooms)
+            .ToListAsync();
+
+    public async Task<IEnumerable<RoomType>> GetAllWithHotelAndRoomsAsync() =>
+        await _context.RoomTypes
+            .Include(rt => rt.Hotel)
+            .Include(rt => rt.RoomTypeFeatures)
+                .ThenInclude(rtf => rtf.RoomFeature)
+            .Include(rt => rt.Rooms)
+                .ThenInclude(r => r.Bookings)
             .ToListAsync();
 
     public async Task AddAsync(RoomType roomType) => await _context.RoomTypes.AddAsync(roomType);

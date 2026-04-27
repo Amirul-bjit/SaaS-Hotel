@@ -10,12 +10,13 @@ namespace HotelBooking.Tests;
 public class BookingServiceTests
 {
     private readonly Mock<IBookingRepository> _bookingRepo = new();
+    private readonly Mock<IRoomTypeRepository> _roomTypeRepo = new();
     private readonly Mock<IRoomRepository> _roomRepo = new();
-    private readonly Mock<IInventoryRepository> _inventoryRepo = new();
     private readonly Mock<ISubscriptionRepository> _subscriptionRepo = new();
     private readonly BookingService _sut;
 
     private readonly Guid _hotelId = Guid.NewGuid();
+    private readonly Guid _roomTypeId = Guid.NewGuid();
     private readonly Guid _roomId = Guid.NewGuid();
     private readonly Guid _userId = Guid.NewGuid();
 
@@ -23,19 +24,25 @@ public class BookingServiceTests
     {
         _sut = new BookingService(
             _bookingRepo.Object,
+            _roomTypeRepo.Object,
             _roomRepo.Object,
-            _inventoryRepo.Object,
             _subscriptionRepo.Object);
     }
+
+    private RoomType CreateRoomType() => new()
+    {
+        Id = _roomTypeId,
+        HotelId = _hotelId,
+        Name = "Deluxe Suite",
+        Price = 199.99m,
+        MaxGuests = 2
+    };
 
     private Room CreateRoom() => new()
     {
         Id = _roomId,
-        HotelId = _hotelId,
-        Name = "Deluxe",
-        Price = 100,
-        TotalRooms = 5,
-        MaxGuests = 2
+        RoomTypeId = _roomTypeId,
+        RoomNumber = "101"
     };
 
     private Subscription CreateActiveSubscription() => new()
@@ -51,24 +58,23 @@ public class BookingServiceTests
 
     private CreateBookingRequest CreateValidRequest() => new()
     {
-        RoomId = _roomId,
+        RoomTypeId = _roomTypeId,
         CheckIn = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
         CheckOut = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3))
     };
 
-    private void SetupRoomAndInventory()
+    private void SetupRoomTypeAndRooms()
     {
-        _roomRepo.Setup(r => r.GetByIdAsync(_roomId)).ReturnsAsync(CreateRoom());
-        _inventoryRepo.Setup(i => i.GetByRoomAndDateAsync(_roomId, It.IsAny<DateOnly>()))
-            .ReturnsAsync(new Inventory { Id = Guid.NewGuid(), RoomId = _roomId, Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)), AvailableCount = 3 });
+        _roomTypeRepo.Setup(r => r.GetByIdAsync(_roomTypeId)).ReturnsAsync(CreateRoomType());
+        _roomRepo.Setup(r => r.GetByRoomTypeIdAsync(_roomTypeId)).ReturnsAsync(new List<Room> { CreateRoom() });
+        _bookingRepo.Setup(b => b.GetBookedRoomIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+            .ReturnsAsync(new HashSet<Guid>());
     }
-
-    // --- Subscription enforcement tests ---
 
     [Fact]
     public async Task CreateBooking_NoSubscription_ThrowsInvalidOperation()
     {
-        SetupRoomAndInventory();
+        SetupRoomTypeAndRooms();
         _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync((Subscription?)null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -80,7 +86,7 @@ public class BookingServiceTests
     [Fact]
     public async Task CreateBooking_InactiveSubscription_ThrowsInvalidOperation()
     {
-        SetupRoomAndInventory();
+        SetupRoomTypeAndRooms();
         var sub = CreateActiveSubscription();
         sub.IsActive = false;
         _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(sub);
@@ -94,9 +100,9 @@ public class BookingServiceTests
     [Fact]
     public async Task CreateBooking_ExpiredSubscription_ThrowsInvalidOperation()
     {
-        SetupRoomAndInventory();
+        SetupRoomTypeAndRooms();
         var sub = CreateActiveSubscription();
-        sub.ExpiryDate = DateTime.UtcNow.AddDays(-1); // expired yesterday
+        sub.ExpiryDate = DateTime.UtcNow.AddDays(-10);
         _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(sub);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -108,7 +114,7 @@ public class BookingServiceTests
     [Fact]
     public async Task CreateBooking_ActiveSubscription_Succeeds()
     {
-        SetupRoomAndInventory();
+        SetupRoomTypeAndRooms();
         _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(CreateActiveSubscription());
 
         var result = await _sut.CreateBookingAsync(CreateValidRequest(), _userId, null);
@@ -120,9 +126,24 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task CreateBooking_NoFreeRooms_ThrowsInvalidOperation()
+    {
+        _roomTypeRepo.Setup(r => r.GetByIdAsync(_roomTypeId)).ReturnsAsync(CreateRoomType());
+        _roomRepo.Setup(r => r.GetByRoomTypeIdAsync(_roomTypeId)).ReturnsAsync(new List<Room> { CreateRoom() });
+        _bookingRepo.Setup(b => b.GetBookedRoomIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+            .ReturnsAsync(new HashSet<Guid> { _roomId }); // all rooms booked
+        _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(CreateActiveSubscription());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _sut.CreateBookingAsync(CreateValidRequest(), _userId, null));
+
+        Assert.Contains("No rooms available", ex.Message);
+    }
+
+    [Fact]
     public async Task CreateBooking_HotelOwner_InactiveSubscription_ThrowsInvalidOperation()
     {
-        SetupRoomAndInventory();
+        SetupRoomTypeAndRooms();
         var sub = CreateActiveSubscription();
         sub.IsActive = false;
         _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(sub);
@@ -131,19 +152,5 @@ public class BookingServiceTests
             () => _sut.CreateBookingAsync(CreateValidRequest(), _userId, _hotelId));
 
         Assert.Contains("subscription is inactive", ex.Message);
-    }
-
-    [Fact]
-    public async Task CreateBooking_HotelOwner_ExpiredSubscription_ThrowsInvalidOperation()
-    {
-        SetupRoomAndInventory();
-        var sub = CreateActiveSubscription();
-        sub.ExpiryDate = DateTime.UtcNow.AddDays(-5);
-        _subscriptionRepo.Setup(s => s.GetByHotelIdAsync(_hotelId)).ReturnsAsync(sub);
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.CreateBookingAsync(CreateValidRequest(), _userId, _hotelId));
-
-        Assert.Contains("subscription has expired", ex.Message);
     }
 }

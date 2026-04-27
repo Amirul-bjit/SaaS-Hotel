@@ -7,7 +7,6 @@ import {
   HotelPublicResponse,
   CreateHotelRequest,
   RoomResponse,
-  RoomGlobalResponse,
   CreateRoomRequest,
   BookingResponse,
   CreateBookingRequest,
@@ -20,6 +19,7 @@ import {
   CreateOwnerRequest,
   RoomFeatureDto,
   RoomTypeResponse,
+  RoomTypeGlobalResponse,
   CreateRoomTypeRequest,
   UpdateRoomTypeRequest,
 } from '@/types';
@@ -77,36 +77,16 @@ export const hotelApi = {
     apiClient.delete(`/hotels/${id}`),
 };
 
-// --- Room API ---
-export interface RoomFilters {
-  minPrice?: number;
-  maxPrice?: number;
-  minGuests?: number;
-  location?: string;
-  featureIds?: string[];
-}
-
+// --- Room API (owner management of physical rooms) ---
 export const roomApi = {
-  getAll: (filters?: RoomFilters) => {
-    const params = new URLSearchParams();
-    if (filters?.minPrice != null) params.append('minPrice', String(filters.minPrice));
-    if (filters?.maxPrice != null) params.append('maxPrice', String(filters.maxPrice));
-    if (filters?.minGuests != null) params.append('minGuests', String(filters.minGuests));
-    if (filters?.location) params.append('location', filters.location);
-    if (filters?.featureIds?.length) {
-      filters.featureIds.forEach((id) => params.append('featureIds', id));
-    }
-    const query = params.toString();
-    return apiClient
-      .get<RoomGlobalResponse[]>(`/rooms${query ? `?${query}` : ''}`)
-      .then((r) => r.data);
-  },
-  getById: (id: string) =>
-    apiClient.get<RoomGlobalResponse>(`/rooms/${id}`).then((r) => r.data),
   getByHotel: (hotelId: string) =>
     apiClient.get<RoomResponse[]>(`/hotels/${hotelId}/rooms`).then((r) => r.data),
+  getByRoomType: (hotelId: string, roomTypeId: string) =>
+    apiClient.get<RoomResponse[]>(`/hotels/${hotelId}/rooms/by-room-type/${roomTypeId}`).then((r) => r.data),
   create: (hotelId: string, data: CreateRoomRequest) =>
     apiClient.post<RoomResponse>(`/hotels/${hotelId}/rooms`, data).then((r) => r.data),
+  delete: (hotelId: string, id: string) =>
+    apiClient.delete(`/hotels/${hotelId}/rooms/${id}`),
 };
 
 // --- Room Feature API ---
@@ -116,11 +96,46 @@ export const roomFeatureApi = {
 };
 
 // --- Room Type API ---
+export interface RoomTypeFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  minGuests?: number;
+  location?: string;
+  featureIds?: string[];
+  checkIn?: string;
+  checkOut?: string;
+}
+
 export const roomTypeApi = {
+  // Public marketplace
+  getAll: (filters?: RoomTypeFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.minPrice != null) params.append('minPrice', String(filters.minPrice));
+    if (filters?.maxPrice != null) params.append('maxPrice', String(filters.maxPrice));
+    if (filters?.minGuests != null) params.append('minGuests', String(filters.minGuests));
+    if (filters?.location) params.append('location', filters.location);
+    if (filters?.featureIds?.length) {
+      filters.featureIds.forEach((id) => params.append('featureIds', id));
+    }
+    if (filters?.checkIn) params.append('checkIn', filters.checkIn);
+    if (filters?.checkOut) params.append('checkOut', filters.checkOut);
+    const query = params.toString();
+    return apiClient
+      .get<RoomTypeGlobalResponse[]>(`/room-types${query ? `?${query}` : ''}`)
+      .then((r) => r.data);
+  },
+  getById: (id: string, checkIn?: string, checkOut?: string) => {
+    const params = new URLSearchParams();
+    if (checkIn) params.append('checkIn', checkIn);
+    if (checkOut) params.append('checkOut', checkOut);
+    const query = params.toString();
+    return apiClient
+      .get<RoomTypeGlobalResponse>(`/room-types/${id}${query ? `?${query}` : ''}`)
+      .then((r) => r.data);
+  },
+  // Owner management
   getByHotel: (hotelId: string) =>
     apiClient.get<RoomTypeResponse[]>(`/hotels/${hotelId}/room-types`).then((r) => r.data),
-  getById: (id: string) =>
-    apiClient.get<RoomTypeResponse>(`/room-types/${id}`).then((r) => r.data),
   create: (hotelId: string, data: CreateRoomTypeRequest) =>
     apiClient.post<RoomTypeResponse>(`/hotels/${hotelId}/room-types`, data).then((r) => r.data),
   update: (hotelId: string, id: string, data: UpdateRoomTypeRequest) =>

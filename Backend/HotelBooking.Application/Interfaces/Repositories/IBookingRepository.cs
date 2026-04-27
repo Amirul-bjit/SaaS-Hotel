@@ -8,6 +8,7 @@ public interface IBookingRepository
     Task<IEnumerable<Booking>> GetByUserIdAsync(Guid userId);
     Task<IEnumerable<Booking>> GetByHotelIdAsync(Guid hotelId);
     Task<IEnumerable<Booking>> GetAllAsync();
+    Task<ISet<Guid>> GetBookedRoomIdsAsync(IEnumerable<Guid> roomIds, DateOnly checkIn, DateOnly checkOut);
     Task AddAsync(Booking booking);
     Task SaveChangesAsync();
 }
