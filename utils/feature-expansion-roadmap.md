@@ -17,63 +17,67 @@
 
 ## Phase 1 — Core Gaps (Complete What's Started)
 
-### 1.1 Subscription Enforcement
-- Block room creation when subscription is expired or inactive (done)
-- Block new bookings for hotels with expired subscriptions (done)
-- Show warning banners to hotel owners approaching expiry (done)
-- Grace period (e.g., 7 days) before hard-blocking (done)
-- Auto-deactivate hotels when subscription lapses (need testing)
+> **Progress: 11/25 done, 4 partial, 10 remaining** (last reviewed: April 27, 2026)
 
-### 1.2 Flexible Room Types & Feature System
-- `RoomType` is **defined by each HOTEL_OWNER**, not globally enforced  
-  - Examples: “Deluxe Twin”, “Ocean Pool Villa”, “Family Suite”  
-  - Stores: `name`, `base_price`, `max_guests`, `description`
+### 1.1 Subscription Enforcement ✅ (4/5 done)
+- ✅ Block room creation when subscription is expired or inactive
+  - `RoomService` checks `subscription.IsActive` + `ExpiryDate.AddDays(7)` grace
+- ✅ Block new bookings for hotels with expired subscriptions
+  - `BookingService` validates subscription exists, is active, and within grace
+- ✅ Show warning banners to hotel owners approaching expiry
+  - Owner dashboard + subscription page show amber/red banners for expiring/grace/expired
+- ✅ Grace period (7 days) before hard-blocking
+  - `GracePeriodDays = 7` constant in `SubscriptionService`, used across room + booking creation
+- 🔶 Auto-deactivate hotels when subscription lapses
+  - `DeactivateExpiredSubscriptionsAsync()` exists in `SubscriptionService` + `SubscriptionRepository`
+  - Exposed via manual `POST /subscriptions/deactivate-expired` endpoint (SuperAdmin only)
+  - **TODO:** Add `IHostedService` / background job to run this nightly (no scheduler exists yet)
 
-- `RoomFeature` (Amenity) is a **global, reusable feature system**  
-  - Examples: WiFi, Private Pool, Sea View, AC, Parking, Breakfast, Gym, Spa  
-  - Designed as **capabilities**, not fixed categories
+### 1.2 Flexible Room Types & Feature System ✅ (all done)
+- ✅ `RoomType` entity — defined per hotel owner, stores: `Name`, `Price`, `MaxGuests`, `Description`
+  - `Room` entities are physical instances with `RoomNumber`, linked to `RoomType`
 
-- Implement **many-to-many relationship**:
-  - `RoomType ↔ RoomFeature`
-  - A room type can have multiple features  
-  - A feature can belong to many room types  
+- ✅ `RoomFeature` entity — global, reusable (`Id`, `Name`, `Icon`), 12 features seeded
+- ✅ Many-to-many `RoomType ↔ RoomFeature` via `RoomTypeFeature` join entity
+- ✅ Rooms inherit features from their `RoomType` (no per-room feature override)
+- ✅ Global marketplace filtering (`RoomTypeService.GetAllForMarketplaceAsync`)
+  - Filters: price range, max guests, feature IDs, location, check-in/check-out availability
+  - Only shows room types from hotels with active subscriptions
+- ✅ Frontend displays feature icons/tags on room cards (emoji-mapped `FeatureTag` component)
+- ✅ Extensible — new features added as data rows, no schema changes needed
+- ✅ Owner detail page (`/rooms/[id]`) shows room type info, physical rooms, and bookings table
 
-- Rooms inherit features from their `RoomType`  
-  - Individual rooms do NOT redefine features (can be extended later if needed)
+### 1.3 Hotel Activation / Deactivation ❌ (0/4 done, 1 partial)
+- ❌ `IsActive` flag on Hotel entity — **does NOT exist** on `Hotel.cs`
+  - Marketplace hiding currently relies on subscription status, not a hotel-level flag
+- ❌ SuperAdmin activate/deactivate hotels — no endpoint on `HotelController`
+  - `SubscriptionController.ToggleActive` toggles the subscription, not the hotel itself
+- 🔶 Inactive hotels hidden from marketplace
+  - Effectively achieved via subscription filtering in `HotelService.GetAllHotelsPublicAsync`
+  - **TODO:** Add explicit `Hotel.IsActive` flag for direct admin control independent of subscription
+- ❌ Reactivation workflow — no formal workflow with validation/approval
 
-- Support **global room filtering (marketplace view)**:
-  - Filter by:
-    - price range  
-    - max guests  
-    - features (e.g., `private_pool`, `sea_view`)  
-    - hotel location  
+### 1.4 Booking Status Workflow ❌ (0/5 done, 2 partial)
+- 🔶 Status enum: only `Pending`, `Confirmed`, `Cancelled` exist in `BookingStatus.cs`
+  - **TODO:** Add `CheckedIn`, `CheckedOut`, `Completed`, `NoShow`
+- ❌ Full status flow — bookings are created directly as `Confirmed` (no state transitions)
+  - **TODO:** Create bookings as `Pending`, implement state machine with valid transitions
+- 🔶 Terminal states — `Cancelled` exists, `NoShow` does **not**
+- ❌ Hotel owners confirm/reject — `BookingController` only has `Create` + `GetAll`
+  - **TODO:** Add `PATCH /bookings/{id}/status` for owner status updates
+  - **TODO:** Add `CancelBooking`, `ConfirmBooking` methods to `BookingService`
+- ❌ Cancellation with room restoration — no cancel endpoint
+  - Note: `BookingRepository.GetBookedRoomIdsAsync` already excludes `Cancelled` bookings, so room auto-frees if cancelled — just needs the endpoint
+- ❌ Cancellation policy — no entity, configuration, or logic
 
-- Frontend must display:
-  - Feature icons (e.g., pool, WiFi, breakfast)  
-  - Feature tags on room cards  
-  - Clear visual differentiation of room capabilities  
-
-- System must support **extensibility**:
-  - New features can be added without database schema changes  
-  - Works across hotels, resorts, villas, apartments, etc.  
-
-### 1.3 Hotel Activation / Deactivation
-- `IsActive` flag on Hotel entity (done)
-- SuperAdmin can activate/deactivate hotels (done)
-- Inactive hotels hidden from marketplace and booking (done)
-- Reactivation workflow
-
-### 1.4 Booking Status Workflow
-- Full status flow: `Pending → Confirmed → CheckedIn → CheckedOut → Completed`
-- Add `Cancelled` and `NoShow` as terminal states
-- Allow hotel owners to confirm/reject pending bookings
-- Cancellation with inventory restoration (re-increment available count)
-- Cancellation policy (free cancel before X days, penalty after)
-
-### 1.5 Concurrency & Data Integrity
-- Optimistic concurrency tokens on Inventory for double-booking prevention
-- Explicit DB transactions on booking creation
-- Row versioning on critical entities
+### 1.5 Concurrency & Data Integrity ❌ (0/3 done)
+- ❌ Optimistic concurrency tokens — no `[ConcurrencyCheck]`, `[Timestamp]`, or `IsRowVersion()` on any entity
+  - **TODO:** Add `RowVersion` byte array on `Room` and `Booking` entities
+- ❌ Explicit DB transactions on booking creation
+  - `BookingService.CreateBookingAsync` does `AddAsync` + `SaveChangesAsync` without transaction
+  - **Risk:** Two concurrent requests for the last room can both succeed (double-booking)
+  - **TODO:** Wrap in `BeginTransactionAsync` / `CommitAsync` with row-level locking
+- ❌ Row versioning on critical entities — not implemented anywhere
 
 ---
 
