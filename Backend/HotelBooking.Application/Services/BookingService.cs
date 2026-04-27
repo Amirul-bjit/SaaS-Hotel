@@ -11,15 +11,18 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookingRepository;
     private readonly IRoomRepository _roomRepository;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly ISubscriptionRepository _subscriptionRepository;
 
     public BookingService(
         IBookingRepository bookingRepository,
         IRoomRepository roomRepository,
-        IInventoryRepository inventoryRepository)
+        IInventoryRepository inventoryRepository,
+        ISubscriptionRepository subscriptionRepository)
     {
         _bookingRepository = bookingRepository;
         _roomRepository = roomRepository;
         _inventoryRepository = inventoryRepository;
+        _subscriptionRepository = subscriptionRepository;
     }
 
     public async Task<BookingResponse> CreateBookingAsync(CreateBookingRequest request, Guid userId, Guid? hotelId)
@@ -42,7 +45,16 @@ public class BookingService : IBookingService
 
         var resolvedHotelId = hotelId ?? room.HotelId;
 
-        // 3. Check inventory for each date in range
+        // 3. Subscription validation — block bookings for hotels without active subscription
+        var subscription = await _subscriptionRepository.GetByHotelIdAsync(resolvedHotelId);
+        if (subscription == null)
+            throw new InvalidOperationException("This hotel does not have a subscription. Bookings are unavailable.");
+        if (!subscription.IsActive)
+            throw new InvalidOperationException("This hotel's subscription is inactive. Bookings are temporarily unavailable.");
+        if (subscription.ExpiryDate.AddDays(7) < DateTime.UtcNow)
+            throw new InvalidOperationException("This hotel's subscription has expired and the grace period has ended. Bookings are temporarily unavailable.");
+
+        // 4. Check inventory for each date in range
         var dates = GetDateRange(request.CheckIn, request.CheckOut).ToList();
         var inventories = new List<Inventory>();
 

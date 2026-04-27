@@ -19,8 +19,15 @@ public class BookingController : ControllerBase
     {
         var userId = GetUserId();
         var hotelId = GetHotelId(); // null for CUSTOMER — service will derive from room
-        var result = await _bookingService.CreateBookingAsync(request, userId, hotelId);
-        return Ok(result);
+        try
+        {
+            var result = await _bookingService.CreateBookingAsync(request, userId, hotelId);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet]

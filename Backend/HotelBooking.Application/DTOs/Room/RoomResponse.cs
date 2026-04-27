@@ -1,3 +1,5 @@
+using HotelBooking.Application.DTOs.RoomType;
+
 namespace HotelBooking.Application.DTOs.Room;
 
 public class RoomResponse
@@ -8,4 +10,7 @@ public class RoomResponse
     public decimal Price { get; set; }
     public int TotalRooms { get; set; }
     public int MaxGuests { get; set; }
+    public Guid? RoomTypeId { get; set; }
+    public string? RoomTypeName { get; set; }
+    public List<RoomFeatureDto> Features { get; set; } = new();
 }

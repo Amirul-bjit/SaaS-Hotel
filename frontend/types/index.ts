@@ -38,12 +38,47 @@ export interface HotelPublicResponse {
   location: string;
 }
 
+// --- Room Feature ---
+export interface RoomFeatureDto {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+// --- Room Type ---
+export interface CreateRoomTypeRequest {
+  name: string;
+  description: string;
+  basePrice: number;
+  maxGuests: number;
+  featureIds: string[];
+}
+
+export interface UpdateRoomTypeRequest {
+  name: string;
+  description: string;
+  basePrice: number;
+  maxGuests: number;
+  featureIds: string[];
+}
+
+export interface RoomTypeResponse {
+  id: string;
+  hotelId: string;
+  name: string;
+  description: string;
+  basePrice: number;
+  maxGuests: number;
+  features: RoomFeatureDto[];
+}
+
 // --- Room ---
 export interface CreateRoomRequest {
   name: string;
   price: number;
   totalRooms: number;
   maxGuests: number;
+  roomTypeId?: string;
 }
 
 export interface RoomResponse {
@@ -53,6 +88,9 @@ export interface RoomResponse {
   price: number;
   totalRooms: number;
   maxGuests: number;
+  roomTypeId?: string;
+  roomTypeName?: string;
+  features: RoomFeatureDto[];
 }
 
 export interface RoomGlobalResponse {
@@ -64,6 +102,8 @@ export interface RoomGlobalResponse {
   price: number;
   totalRooms: number;
   maxGuests: number;
+  roomTypeName?: string;
+  features: RoomFeatureDto[];
 }
 
 // --- Booking ---
@@ -102,6 +142,8 @@ export interface SubscriptionResponse {
   lastPaymentDate: string | null;
   lastPaymentAmount: number;
   isActive: boolean;
+  daysUntilExpiry: number;
+  isInGracePeriod: boolean;
   planConfig: PlanConfigResponse | null;
 }
 

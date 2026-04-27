@@ -6,6 +6,6 @@ public interface IRoomService
 {
     Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request, Guid hotelId);
     Task<IEnumerable<RoomResponse>> GetRoomsByHotelAsync(Guid hotelId);
-    Task<IEnumerable<RoomGlobalResponse>> GetAllRoomsAsync(decimal? minPrice, decimal? maxPrice, int? minGuests, string? location);
+    Task<IEnumerable<RoomGlobalResponse>> GetAllRoomsAsync(decimal? minPrice, decimal? maxPrice, int? minGuests, string? location, List<Guid>? featureIds);
     Task<RoomGlobalResponse?> GetRoomByIdAsync(Guid id);
 }

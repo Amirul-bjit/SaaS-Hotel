@@ -40,6 +40,8 @@ export default function OwnerSubscriptionPage() {
   }
 
   const isExpired = subscription ? new Date(subscription.expiryDate) < new Date() : false;
+  const isInGracePeriod = subscription?.isInGracePeriod ?? false;
+  const isApproachingExpiry = subscription ? subscription.daysUntilExpiry <= 7 && subscription.daysUntilExpiry >= 0 : false;
 
   return (
     <div className="px-6 py-8 max-w-3xl">
@@ -54,9 +56,19 @@ export default function OwnerSubscriptionPage() {
 
       {subscription ? (
         <>
-          {(isExpired || !subscription.isActive) && (
-            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              ⚠️ {isExpired ? 'Your subscription has expired.' : 'Your subscription is inactive.'} Contact the administrator to renew.
+          {(isExpired || !subscription.isActive || isInGracePeriod || isApproachingExpiry) && (
+            <div className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
+              isInGracePeriod || (isExpired && !isInGracePeriod)
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}>
+              {!subscription.isActive
+                ? '⚠️ Your subscription is inactive. Contact the administrator to renew.'
+                : isInGracePeriod
+                ? `🚨 Your subscription has expired! You have ${7 + subscription.daysUntilExpiry} day(s) left in the grace period before your hotel is deactivated. Contact the administrator to renew immediately.`
+                : isExpired
+                ? '⚠️ Your subscription has expired and the grace period has ended. Contact the administrator to renew.'
+                : `⚠️ Your subscription expires in ${subscription.daysUntilExpiry} day(s). Contact the administrator to renew soon.`}
             </div>
           )}
 
@@ -78,11 +90,13 @@ export default function OwnerSubscriptionPage() {
                 <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Status</div>
                 <div className="mt-1">
                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-bold ${
-                    subscription.isActive && !isExpired
+                    subscription.isActive && !isExpired && !isApproachingExpiry
                       ? 'bg-green-100 text-green-700'
+                      : isInGracePeriod || isApproachingExpiry
+                      ? 'bg-amber-100 text-amber-700'
                       : 'bg-red-100 text-red-700'
                   }`}>
-                    {!subscription.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
+                    {!subscription.isActive ? 'Inactive' : isExpired ? (isInGracePeriod ? 'Grace Period' : 'Expired') : isApproachingExpiry ? 'Expiring Soon' : 'Active'}
                   </span>
                 </div>
               </div>

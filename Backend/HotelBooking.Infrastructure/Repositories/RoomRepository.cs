@@ -14,13 +14,28 @@ public class RoomRepository : IRoomRepository
         _context.Rooms.FindAsync(id).AsTask();
 
     public Task<Room?> GetByIdWithHotelAsync(Guid id) =>
-        _context.Rooms.Include(r => r.Hotel).FirstOrDefaultAsync(r => r.Id == id);
+        _context.Rooms
+            .Include(r => r.Hotel)
+            .Include(r => r.RoomType)
+                .ThenInclude(rt => rt!.RoomTypeFeatures)
+                    .ThenInclude(rtf => rtf.RoomFeature)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task<IEnumerable<Room>> GetByHotelIdAsync(Guid hotelId) =>
-        await _context.Rooms.Where(r => r.HotelId == hotelId).ToListAsync();
+        await _context.Rooms
+            .Where(r => r.HotelId == hotelId)
+            .Include(r => r.RoomType)
+                .ThenInclude(rt => rt!.RoomTypeFeatures)
+                    .ThenInclude(rtf => rtf.RoomFeature)
+            .ToListAsync();
 
     public async Task<IEnumerable<Room>> GetAllWithHotelAsync() =>
-        await _context.Rooms.Include(r => r.Hotel).ToListAsync();
+        await _context.Rooms
+            .Include(r => r.Hotel)
+            .Include(r => r.RoomType)
+                .ThenInclude(rt => rt!.RoomTypeFeatures)
+                    .ThenInclude(rtf => rtf.RoomFeature)
+            .ToListAsync();
 
     public async Task AddAsync(Room room) => await _context.Rooms.AddAsync(room);
 

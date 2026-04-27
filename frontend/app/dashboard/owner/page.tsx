@@ -72,6 +72,8 @@ export default function OwnerDashboard() {
   const confirmedBookings = bookings.filter(b => b.status === 'Confirmed').length;
   const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
   const isExpired = subscription ? new Date(subscription.expiryDate) < new Date() : false;
+  const isInGracePeriod = subscription?.isInGracePeriod ?? false;
+  const isApproachingExpiry = subscription ? subscription.daysUntilExpiry <= 7 && subscription.daysUntilExpiry >= 0 : false;
 
   return (
     <div className="px-6 py-8 max-w-5xl">
@@ -87,9 +89,19 @@ export default function OwnerDashboard() {
       )}
 
       {/* Subscription warning */}
-      {subscription && (isExpired || !subscription.isActive) && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          ⚠️ {isExpired ? 'Your subscription has expired.' : 'Your subscription is inactive.'} Some features may be restricted.
+      {subscription && (isExpired || !subscription.isActive || isInGracePeriod || isApproachingExpiry) && (
+        <div className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
+          isInGracePeriod || (isExpired && !isInGracePeriod)
+            ? 'border-red-200 bg-red-50 text-red-800'
+            : 'border-amber-200 bg-amber-50 text-amber-800'
+        }`}>
+          {!subscription.isActive
+            ? '⚠️ Your subscription is inactive. Some features may be restricted.'
+            : isInGracePeriod
+            ? `🚨 Your subscription has expired! ${7 + subscription.daysUntilExpiry} day(s) left in grace period before deactivation.`
+            : isExpired
+            ? '⚠️ Your subscription has expired and the grace period has ended.'
+            : `⚠️ Your subscription expires in ${subscription.daysUntilExpiry} day(s). Renew soon to avoid service interruption.`}
         </div>
       )}
 
@@ -132,7 +144,7 @@ export default function OwnerDashboard() {
             </div>
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Expires</div>
-              <div className={`mt-1 text-lg font-bold ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+              <div className={`mt-1 text-lg font-bold ${isExpired ? 'text-red-600' : isApproachingExpiry ? 'text-amber-600' : 'text-gray-900'}`}>
                 {new Date(subscription.expiryDate).toLocaleDateString()}
               </div>
             </div>

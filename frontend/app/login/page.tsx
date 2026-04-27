@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/lib/api';
 import { buildAuthUser } from '@/lib/auth';
@@ -10,13 +10,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AxiosError } from 'axios';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,12 +28,18 @@ export default function LoginPage() {
       const data = await authApi.login({ email, password });
       const authUser = buildAuthUser(data.token, data.name, data.email, data.role);
       login(authUser);
-      const map: Record<string, string> = {
-        SUPER_ADMIN: '/dashboard/admin',
-        HOTEL_OWNER: '/dashboard/owner',
-        CUSTOMER: '/dashboard/customer',
-      };
-      router.push(map[data.role] ?? '/');
+
+      // If there's a returnUrl, go there; otherwise go to role-based dashboard
+      if (returnUrl) {
+        router.push(returnUrl);
+      } else {
+        const map: Record<string, string> = {
+          SUPER_ADMIN: '/dashboard/admin',
+          HOTEL_OWNER: '/dashboard/owner',
+          CUSTOMER: '/dashboard/customer',
+        };
+        router.push(map[data.role] ?? '/');
+      }
     } catch (err) {
       const axiosErr = err as AxiosError<{ message?: string }>;
       setError(axiosErr.response?.data?.message ?? 'Invalid credentials. Please try again.');
@@ -48,6 +56,13 @@ export default function LoginPage() {
           <h1 className="mt-3 text-3xl font-extrabold text-gray-900">Welcome back</h1>
           <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
         </div>
+
+        {returnUrl && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            Please sign in to continue with your booking.
+          </div>
+        )}
+
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           {error && (
             <div className="mb-5 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
@@ -106,5 +121,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

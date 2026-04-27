@@ -3,20 +3,62 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import React from 'react';
+import { subscriptionApi } from '@/lib/api';
+import { SubscriptionResponse } from '@/types';
+import React, { useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/dashboard/owner', label: 'Dashboard', icon: '📊' },
   { href: '/dashboard/owner/hotel', label: 'My Hotel', icon: '🏨' },
+  { href: '/dashboard/owner/room-types', label: 'Room Types', icon: '🏷️' },
   { href: '/dashboard/owner/rooms', label: 'Rooms', icon: '🛏️' },
   { href: '/dashboard/owner/bookings', label: 'Bookings', icon: '📋' },
   { href: '/dashboard/owner/subscription', label: 'Subscription', icon: '💳' },
 ];
 
+function SubscriptionWarningBanner({ subscription }: { subscription: SubscriptionResponse }) {
+  const isExpired = new Date(subscription.expiryDate) < new Date();
+
+  if (!subscription.isActive) {
+    return (
+      <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+        ⚠️ Your subscription is inactive. Room creation and bookings are blocked. Contact the administrator to reactivate.
+      </div>
+    );
+  }
+
+  if (subscription.isInGracePeriod) {
+    const daysLeft = 7 + subscription.daysUntilExpiry; // daysUntilExpiry is negative when expired
+    return (
+      <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+        🚨 Your subscription expired! You have <strong>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</strong> left in the grace period before your hotel is deactivated.{' '}
+        <Link href="/dashboard/owner/subscription" className="underline font-bold">Renew now</Link>
+      </div>
+    );
+  }
+
+  if (subscription.daysUntilExpiry <= 7 && subscription.daysUntilExpiry >= 0) {
+    return (
+      <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        ⚠️ Your subscription expires in <strong>{subscription.daysUntilExpiry} day{subscription.daysUntilExpiry !== 1 ? 's' : ''}</strong>.{' '}
+        <Link href="/dashboard/owner/subscription" className="underline font-bold">Renew now</Link> to avoid service interruption.
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+
+  useEffect(() => {
+    if (loading || !user?.hotelId) return;
+    subscriptionApi.get(user.hotelId).then(setSubscription).catch(() => {});
+  }, [user, loading]);
 
   if (!loading && (!user || user.role !== 'HOTEL_OWNER')) {
     router.push(user ? '/access-denied' : '/login');
@@ -77,6 +119,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto bg-gray-50 pb-20 md:pb-0">
+        {subscription && <SubscriptionWarningBanner subscription={subscription} />}
         {children}
       </main>
     </div>

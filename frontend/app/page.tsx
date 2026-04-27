@@ -125,7 +125,7 @@ export default function LandingPage() {
           <p className="text-gray-500 mb-6">
             Browse all available rooms across every hotel. Filter by price, capacity, and location.
           </p>
-          <Link href="/login">
+          <Link href="/rooms">
             <Button size="lg">
               Explore Rooms
             </Button>

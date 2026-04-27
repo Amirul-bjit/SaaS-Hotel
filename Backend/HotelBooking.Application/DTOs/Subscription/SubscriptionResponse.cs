@@ -13,5 +13,7 @@ public class SubscriptionResponse
     public DateTime? LastPaymentDate { get; set; }
     public decimal LastPaymentAmount { get; set; }
     public bool IsActive { get; set; }
+    public int DaysUntilExpiry { get; set; }
+    public bool IsInGracePeriod { get; set; }
     public PlanConfigResponse? PlanConfig { get; set; }
 }

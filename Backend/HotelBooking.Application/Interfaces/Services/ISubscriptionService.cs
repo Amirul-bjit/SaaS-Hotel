@@ -8,4 +8,5 @@ public interface ISubscriptionService
     Task<SubscriptionResponse?> GetSubscriptionAsync(Guid hotelId);
     Task<SubscriptionResponse> UpdateSubscriptionAsync(CreateSubscriptionRequest request, Guid hotelId);
     Task<SubscriptionResponse> ToggleActiveAsync(Guid hotelId);
+    Task<int> DeactivateExpiredSubscriptionsAsync();
 }

@@ -6,7 +6,7 @@ interface JwtPayload {
   role: string;
 }
 
-const PUBLIC_PATHS = ['/', '/login', '/register'];
+const PUBLIC_PATHS = ['/', '/login', '/register', '/hotels', '/rooms'];
 
 const ROLE_PATHS: Record<string, string[]> = {
   '/dashboard/admin': ['SUPER_ADMIN'],
@@ -24,7 +24,8 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('hotel_booking_token')?.value;
 
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const returnUrl = encodeURIComponent(pathname);
+    return NextResponse.redirect(new URL(`/login?returnUrl=${returnUrl}`, request.url));
   }
 
   try {
@@ -47,5 +48,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/hotels/:path*', '/booking/:path*'],
+  matcher: ['/dashboard/:path*', '/booking/:path*'],
 };

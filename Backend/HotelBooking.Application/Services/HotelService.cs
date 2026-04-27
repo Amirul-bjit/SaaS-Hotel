@@ -8,10 +8,12 @@ namespace HotelBooking.Application.Services;
 public class HotelService : IHotelService
 {
     private readonly IHotelRepository _hotelRepository;
+    private readonly ISubscriptionRepository _subscriptionRepository;
 
-    public HotelService(IHotelRepository hotelRepository)
+    public HotelService(IHotelRepository hotelRepository, ISubscriptionRepository subscriptionRepository)
     {
         _hotelRepository = hotelRepository;
+        _subscriptionRepository = subscriptionRepository;
     }
 
     public async Task<HotelResponse> CreateHotelAsync(CreateHotelRequest request, Guid ownerId)
@@ -48,8 +50,11 @@ public class HotelService : IHotelService
 
     public async Task<IEnumerable<HotelPublicResponse>> GetAllHotelsPublicAsync()
     {
+        var activeHotelIds = await _subscriptionRepository.GetActiveHotelIdsAsync();
         var hotels = await _hotelRepository.GetAllAsync();
-        return hotels.Select(h => new HotelPublicResponse { Id = h.Id, Name = h.Name, Location = h.Location });
+        return hotels
+            .Where(h => activeHotelIds.Contains(h.Id))
+            .Select(h => new HotelPublicResponse { Id = h.Id, Name = h.Name, Location = h.Location });
     }
 
     private static HotelResponse MapToResponse(Hotel hotel) =>

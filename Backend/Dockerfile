@@ -8,6 +8,7 @@ COPY HotelBooking.API/HotelBooking.API.csproj ./HotelBooking.API/
 COPY HotelBooking.Application/HotelBooking.Application.csproj ./HotelBooking.Application/
 COPY HotelBooking.Domain/HotelBooking.Domain.csproj ./HotelBooking.Domain/
 COPY HotelBooking.Infrastructure/HotelBooking.Infrastructure.csproj ./HotelBooking.Infrastructure/
+COPY HotelBooking.Tests/HotelBooking.Tests.csproj ./HotelBooking.Tests/
 
 RUN dotnet restore
 

@@ -14,6 +14,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<SubscriptionPlanConfig> SubscriptionPlanConfigs => Set<SubscriptionPlanConfig>();
+    public DbSet<RoomType> RoomTypes => Set<RoomType>();
+    public DbSet<RoomFeature> RoomFeatures => Set<RoomFeature>();
+    public DbSet<RoomTypeFeature> RoomTypeFeatures => Set<RoomTypeFeature>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +45,39 @@ public class ApplicationDbContext : DbContext
             e.HasOne(r => r.Hotel)
              .WithMany(h => h.Rooms)
              .HasForeignKey(r => r.HotelId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.RoomType)
+             .WithMany(rt => rt.Rooms)
+             .HasForeignKey(r => r.RoomTypeId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<RoomType>(e =>
+        {
+            e.HasKey(rt => rt.Id);
+            e.Property(rt => rt.BasePrice).HasColumnType("decimal(18,2)");
+            e.HasOne(rt => rt.Hotel)
+             .WithMany(h => h.RoomTypes)
+             .HasForeignKey(rt => rt.HotelId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RoomFeature>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.HasIndex(f => f.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<RoomTypeFeature>(e =>
+        {
+            e.HasKey(rtf => new { rtf.RoomTypeId, rtf.RoomFeatureId });
+            e.HasOne(rtf => rtf.RoomType)
+             .WithMany(rt => rt.RoomTypeFeatures)
+             .HasForeignKey(rtf => rtf.RoomTypeId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(rtf => rtf.RoomFeature)
+             .WithMany(f => f.RoomTypeFeatures)
+             .HasForeignKey(rtf => rtf.RoomFeatureId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -93,5 +129,23 @@ public class ApplicationDbContext : DbContext
             e.Property(p => p.MonthlyPrice).HasColumnType("decimal(18,2)");
             e.Property(p => p.YearlyPrice).HasColumnType("decimal(18,2)");
         });
+
+        // Seed global room features
+        var features = new[]
+        {
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000001"), Name = "WiFi", Icon = "wifi" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000002"), Name = "Private Pool", Icon = "pool" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000003"), Name = "Sea View", Icon = "waves" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000004"), Name = "Air Conditioning", Icon = "snowflake" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000005"), Name = "Parking", Icon = "car" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000006"), Name = "Breakfast", Icon = "coffee" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000007"), Name = "Gym", Icon = "dumbbell" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000008"), Name = "Spa", Icon = "sparkles" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-000000000009"), Name = "Room Service", Icon = "bell" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-00000000000a"), Name = "Mini Bar", Icon = "wine" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-00000000000b"), Name = "Balcony", Icon = "sun" },
+            new RoomFeature { Id = Guid.Parse("a1000000-0000-0000-0000-00000000000c"), Name = "Kitchen", Icon = "utensils" },
+        };
+        modelBuilder.Entity<RoomFeature>().HasData(features);
     }
 }

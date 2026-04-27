@@ -88,5 +88,13 @@ public class SubscriptionController : ControllerBase
         var result = await _subscriptionService.GetSubscriptionAsync(hotelId);
         return result == null ? NotFound() : Ok(result);
     }
+
+    [HttpPost("deactivate-expired")]
+    [Authorize(Policy = "IsSuperAdmin")]
+    public async Task<IActionResult> DeactivateExpired()
+    {
+        var count = await _subscriptionService.DeactivateExpiredSubscriptionsAsync();
+        return Ok(new { deactivated = count });
+    }
 }
 

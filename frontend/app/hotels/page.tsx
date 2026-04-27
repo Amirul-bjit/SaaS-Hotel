@@ -5,30 +5,47 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { hotelApi, roomApi, subscriptionApi } from '@/lib/api';
-import { HotelPublicResponse, HotelResponse, RoomResponse, SubscriptionResponse } from '@/types';
+import { HotelPublicResponse, HotelResponse, RoomResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 
 type AnyHotel = HotelPublicResponse | HotelResponse;
 
-function RoomCard({ room, hotelId }: { room: RoomResponse; hotelId: string }) {
+function RoomCard({ room }: { room: RoomResponse }) {
   const { user } = useAuth();
+  const router = useRouter();
+
+  function handleBook() {
+    if (!user) {
+      router.push(`/login?returnUrl=${encodeURIComponent(`/booking/${room.id}`)}`);
+    } else {
+      router.push(`/booking/${room.id}`);
+    }
+  }
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-gray-900 truncate">{room.name}</div>
-        <div className="mt-1 text-2xl font-extrabold text-blue-600">
-          ${room.price}<span className="text-sm font-medium text-gray-400"> / night</span>
+    <div className="group relative rounded-xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-semibold text-gray-900 truncate">{room.name}</h4>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+              <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+              Up to {room.maxGuests}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+              <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+              {room.totalRooms} rooms
+            </span>
+          </div>
         </div>
-        <div className="mt-1 flex gap-3 text-xs text-gray-500">
-          <span>🛏️ {room.totalRooms} rooms</span>
-          {room.maxGuests > 0 && <span>👥 Up to {room.maxGuests} guests</span>}
+        <div className="text-right shrink-0">
+          <div className="text-2xl font-bold text-gray-900">${room.price}</div>
+          <div className="text-xs text-gray-400 font-medium">per night</div>
         </div>
       </div>
-      {user?.role === 'CUSTOMER' && (
-        <Link href={`/booking/${room.id}`}>
-          <Button className="mt-4 w-full" size="sm">Book Now</Button>
-        </Link>
-      )}
+      <Button onClick={handleBook} className="mt-4 w-full" size="sm">
+        {user ? 'Book Now' : 'Sign in to Book'}
+      </Button>
     </div>
   );
 }
@@ -61,51 +78,81 @@ function HotelCard({ hotel, showOwner, canAddRoom, roomBlockReason }: HotelCardP
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between p-6 gap-4">
-        <div className="min-w-0">
-          <h3 className="text-lg font-bold text-gray-900 truncate">{hotel.name}</h3>
-          {'location' in hotel && hotel.location && (
-            <p className="mt-0.5 text-xs text-gray-500 flex items-center gap-1">
-              <span>📍</span> {hotel.location}
-            </p>
-          )}
-          {showOwner && 'ownerId' in hotel && (
-            <p className="mt-0.5 font-mono text-xs text-gray-400">
-              Owner: {(hotel as HotelResponse).ownerId}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {user?.role === 'HOTEL_OWNER' && (
-            canAddRoom ? (
-              <Link href={`/hotels/${hotel.id}/rooms/new`}>
-                <Button size="sm" variant="secondary">+ Room</Button>
-              </Link>
-            ) : (
-              <span title={roomBlockReason ?? 'Cannot add rooms'}>
-                <Button size="sm" variant="secondary" disabled className="opacity-50 cursor-not-allowed">
-                  + Room
-                </Button>
-              </span>
-            )
-          )}
-          <button
-            onClick={toggleRooms}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            {loadingRooms ? 'Loading...' : expanded ? '▲ Hide Rooms' : '▼ View Rooms'}
-          </button>
+    <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* Hotel header with gradient accent */}
+      <div className="relative">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600" />
+        <div className="flex items-center justify-between p-6 pt-7 gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-lg font-bold shadow-sm shrink-0">
+                {hotel.name.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-gray-900 truncate">{hotel.name}</h3>
+                {'location' in hotel && hotel.location && (
+                  <p className="mt-0.5 text-sm text-gray-500 flex items-center gap-1">
+                    <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0 1 15 0Z" /></svg>
+                    <span className="truncate">{hotel.location}</span>
+                  </p>
+                )}
+                {showOwner && 'ownerId' in hotel && (
+                  <p className="mt-0.5 font-mono text-xs text-gray-400">
+                    Owner: {(hotel as HotelResponse).ownerId.slice(0, 8)}...
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {user?.role === 'HOTEL_OWNER' && (
+              canAddRoom ? (
+                <Link href={`/hotels/${hotel.id}/rooms/new`}>
+                  <Button size="sm" variant="secondary">+ Room</Button>
+                </Link>
+              ) : (
+                <span title={roomBlockReason ?? 'Cannot add rooms'}>
+                  <Button size="sm" variant="secondary" disabled className="opacity-50 cursor-not-allowed">
+                    + Room
+                  </Button>
+                </span>
+              )
+            )}
+            <button
+              onClick={toggleRooms}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
+            >
+              {loadingRooms ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                  {expanded ? 'Hide Rooms' : 'View Rooms'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Rooms expansion */}
       {expanded && rooms !== null && (
-        <div className="border-t border-gray-100 bg-gray-50 p-6">
+        <div className="border-t border-gray-100 bg-gradient-to-b from-gray-50 to-white p-6">
           {rooms.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No rooms available yet.</p>
+            <div className="text-center py-8">
+              <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+              </div>
+              <p className="text-sm font-medium text-gray-500">No rooms available yet</p>
+              <p className="text-xs text-gray-400 mt-1">Check back later for availability</p>
+            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} hotelId={hotel.id} />
+                <RoomCard key={room.id} room={room} />
               ))}
             </div>
           )}
@@ -117,7 +164,6 @@ function HotelCard({ hotel, showOwner, canAddRoom, roomBlockReason }: HotelCardP
 
 export default function HotelsPage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [hotels, setHotels] = useState<AnyHotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -126,26 +172,26 @@ export default function HotelsPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { router.push('/login'); return; }
 
     async function load() {
       try {
         let data: AnyHotel[];
-        if (user!.role === 'SUPER_ADMIN') {
+        if (user?.role === 'SUPER_ADMIN') {
           data = await hotelApi.getAll();
-        } else if (user!.role === 'HOTEL_OWNER' && user!.hotelId) {
-          data = [await hotelApi.getById(user!.hotelId)];
+        } else if (user?.role === 'HOTEL_OWNER' && user?.hotelId) {
+          data = [await hotelApi.getById(user.hotelId)];
         } else {
+          // Public browsing (logged out or CUSTOMER)
           data = await hotelApi.browse();
         }
         setHotels(data);
 
         // Check room creation eligibility for hotel owners
-        if (user!.role === 'HOTEL_OWNER' && user!.hotelId) {
+        if (user?.role === 'HOTEL_OWNER' && user?.hotelId) {
           try {
             const [sub, rooms] = await Promise.all([
-              subscriptionApi.get(user!.hotelId),
-              roomApi.getByHotel(user!.hotelId),
+              subscriptionApi.get(user.hotelId),
+              roomApi.getByHotel(user.hotelId),
             ]);
             const isExpired = new Date(sub.expiryDate) < new Date();
             if (!sub.isActive) {
@@ -173,65 +219,91 @@ export default function HotelsPage() {
       }
     }
     load();
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   if (authLoading || loading) {
     return (
       <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
-          <p className="mt-3 text-sm text-gray-500">Loading hotels...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
+          <p className="mt-4 text-sm text-gray-500">Discovering hotels...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Hotels</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {hotels.length} hotel{hotels.length !== 1 ? 's' : ''} found
-          </p>
+    <div className="min-h-[calc(100vh-64px)]">
+      {/* Hero header */}
+      <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight">Explore Hotels</h1>
+              <p className="mt-2 text-blue-200 max-w-lg">
+                Discover top-rated hotels and browse their rooms. Find the perfect stay for your next trip.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {(user?.role === 'HOTEL_OWNER' || user?.role === 'SUPER_ADMIN') && (
+                <Link href="/hotels/new">
+                  <Button className="bg-white text-blue-700 hover:bg-blue-50 shadow-lg">+ New Hotel</Button>
+                </Link>
+              )}
+              {!user && (
+                <Link href="/rooms">
+                  <Button className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm">
+                    Browse All Rooms
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+          <div className="mt-6 flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" /></svg>
+              <span className="font-medium">{hotels.length} hotel{hotels.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
         </div>
-        {(user?.role === 'HOTEL_OWNER' || user?.role === 'SUPER_ADMIN') && (
-          <Link href="/hotels/new">
-            <Button>+ New Hotel</Button>
-          </Link>
-        )}
       </div>
 
-      {error && (
-        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {error}
-        </div>
-      )}
+      {/* Content */}
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700 flex items-center gap-2">
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+            {error}
+          </div>
+        )}
 
-      {hotels.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white py-16 text-center shadow-sm">
-          <div className="text-5xl mb-4">🏨</div>
-          <p className="text-gray-500 font-medium">No hotels available.</p>
-          {user?.role === 'HOTEL_OWNER' && (
-            <Link href="/hotels/new">
-              <Button className="mt-4">Create Your First Hotel</Button>
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-5">
-          {hotels.map((hotel) => (
-            <HotelCard
-              key={hotel.id}
-              hotel={hotel}
-              showOwner={user?.role === 'SUPER_ADMIN'}
-              canAddRoom={canAddRoom}
-              roomBlockReason={roomBlockReason}
-            />
-          ))}
-        </div>
-      )}
+        {hotels.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white py-20 text-center">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">No hotels available</h3>
+            <p className="mt-1 text-sm text-gray-500">Check back soon for new listings.</p>
+            {user?.role === 'HOTEL_OWNER' && (
+              <Link href="/hotels/new">
+                <Button className="mt-6">Create Your First Hotel</Button>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {hotels.map((hotel) => (
+              <HotelCard
+                key={hotel.id}
+                hotel={hotel}
+                showOwner={user?.role === 'SUPER_ADMIN'}
+                canAddRoom={canAddRoom}
+                roomBlockReason={roomBlockReason}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

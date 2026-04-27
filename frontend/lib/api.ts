@@ -18,6 +18,10 @@ import {
   SubscriptionPlan,
   UserResponse,
   CreateOwnerRequest,
+  RoomFeatureDto,
+  RoomTypeResponse,
+  CreateRoomTypeRequest,
+  UpdateRoomTypeRequest,
 } from '@/types';
 import { getToken, clearAuth } from '@/lib/auth';
 
@@ -79,6 +83,7 @@ export interface RoomFilters {
   maxPrice?: number;
   minGuests?: number;
   location?: string;
+  featureIds?: string[];
 }
 
 export const roomApi = {
@@ -88,6 +93,9 @@ export const roomApi = {
     if (filters?.maxPrice != null) params.append('maxPrice', String(filters.maxPrice));
     if (filters?.minGuests != null) params.append('minGuests', String(filters.minGuests));
     if (filters?.location) params.append('location', filters.location);
+    if (filters?.featureIds?.length) {
+      filters.featureIds.forEach((id) => params.append('featureIds', id));
+    }
     const query = params.toString();
     return apiClient
       .get<RoomGlobalResponse[]>(`/rooms${query ? `?${query}` : ''}`)
@@ -99,6 +107,26 @@ export const roomApi = {
     apiClient.get<RoomResponse[]>(`/hotels/${hotelId}/rooms`).then((r) => r.data),
   create: (hotelId: string, data: CreateRoomRequest) =>
     apiClient.post<RoomResponse>(`/hotels/${hotelId}/rooms`, data).then((r) => r.data),
+};
+
+// --- Room Feature API ---
+export const roomFeatureApi = {
+  getAll: () =>
+    apiClient.get<RoomFeatureDto[]>('/room-features').then((r) => r.data),
+};
+
+// --- Room Type API ---
+export const roomTypeApi = {
+  getByHotel: (hotelId: string) =>
+    apiClient.get<RoomTypeResponse[]>(`/hotels/${hotelId}/room-types`).then((r) => r.data),
+  getById: (id: string) =>
+    apiClient.get<RoomTypeResponse>(`/room-types/${id}`).then((r) => r.data),
+  create: (hotelId: string, data: CreateRoomTypeRequest) =>
+    apiClient.post<RoomTypeResponse>(`/hotels/${hotelId}/room-types`, data).then((r) => r.data),
+  update: (hotelId: string, id: string, data: UpdateRoomTypeRequest) =>
+    apiClient.put<RoomTypeResponse>(`/hotels/${hotelId}/room-types/${id}`, data).then((r) => r.data),
+  delete: (hotelId: string, id: string) =>
+    apiClient.delete(`/hotels/${hotelId}/room-types/${id}`),
 };
 
 // --- Booking API ---

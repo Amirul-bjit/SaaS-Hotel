@@ -14,17 +14,20 @@ public class RoomController : ControllerBase
 
     // --- Global marketplace endpoints ---
 
+    [AllowAnonymous]
     [HttpGet("rooms")]
     public async Task<IActionResult> GetAllRooms(
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] int? minGuests,
-        [FromQuery] string? location)
+        [FromQuery] string? location,
+        [FromQuery] List<Guid>? featureIds)
     {
-        var result = await _roomService.GetAllRoomsAsync(minPrice, maxPrice, minGuests, location);
+        var result = await _roomService.GetAllRoomsAsync(minPrice, maxPrice, minGuests, location, featureIds);
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("rooms/{id:guid}")]
     public async Task<IActionResult> GetRoomById(Guid id)
     {
@@ -50,6 +53,7 @@ public class RoomController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("hotels/{hotelId:guid}/rooms")]
     public async Task<IActionResult> GetByHotel(Guid hotelId)
     {

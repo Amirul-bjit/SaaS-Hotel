@@ -53,8 +53,8 @@ public class HotelController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("browse")]
-    [Authorize(Policy = "CanViewBookings")]
     public async Task<IActionResult> Browse()
     {
         var result = await _hotelService.GetAllHotelsPublicAsync();

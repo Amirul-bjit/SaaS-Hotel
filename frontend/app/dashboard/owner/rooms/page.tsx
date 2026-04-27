@@ -120,10 +120,27 @@ export default function OwnerRoomsPage() {
       <Card>
         <Table<RoomResponse & Record<string, unknown>>
           columns={[
-            { key: 'name', header: 'Room Name', render: (r) => <span className="font-semibold text-gray-800">{r.name}</span> },
+            { key: 'name', header: 'Room Name', render: (r) => (
+              <div>
+                <span className="font-semibold text-gray-800">{r.name}</span>
+                {r.roomTypeName && <span className="ml-2 text-xs text-indigo-600">({r.roomTypeName})</span>}
+              </div>
+            )},
             { key: 'price', header: 'Price / Night', render: (r) => <span className="font-bold text-blue-700">${r.price}</span> },
             { key: 'totalRooms', header: 'Total Rooms', render: (r) => <span className="font-semibold text-gray-700">{r.totalRooms}</span> },
             { key: 'maxGuests', header: 'Max Guests', render: (r) => <span className="text-gray-600">{r.maxGuests}</span> },
+            { key: 'features', header: 'Features', render: (r) => (
+              <div className="flex flex-wrap gap-1">
+                {r.features && r.features.length > 0
+                  ? r.features.map((f: { id: string; name: string }) => (
+                      <span key={f.id} className="inline-flex items-center rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-700 ring-1 ring-purple-100">
+                        {f.name}
+                      </span>
+                    ))
+                  : <span className="text-xs text-gray-400">None</span>
+                }
+              </div>
+            )},
           ]}
           data={rooms as unknown as (RoomResponse & Record<string, unknown>)[]}
           emptyMessage="No rooms added yet. Click '+ Add Room' to get started."

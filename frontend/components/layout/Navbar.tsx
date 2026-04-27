@@ -54,10 +54,12 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {/* Public navigation — always visible */}
+          {navLink('/hotels', 'Hotels')}
+          {navLink('/rooms', 'Rooms')}
+
           {user ? (
             <>
-              {(user.role === 'CUSTOMER') && navLink('/hotels', 'Hotels')}
-              {(user.role === 'CUSTOMER') && navLink('/rooms', 'Browse Rooms')}
               {dashboardLink && navLink(dashboardLink, 'Dashboard')}
               <div className="hidden sm:flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-1.5">
                 <span className="text-sm font-semibold text-gray-800">{user.name}</span>

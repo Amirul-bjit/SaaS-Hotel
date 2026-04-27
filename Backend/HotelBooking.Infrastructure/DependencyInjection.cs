@@ -25,6 +25,8 @@ public static class DependencyInjection
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionPlanConfigRepository, SubscriptionPlanConfigRepository>();
+        services.AddScoped<IRoomTypeRepository, RoomTypeRepository>();
+        services.AddScoped<IRoomFeatureRepository, RoomFeatureRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
@@ -34,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<ISubscriptionPlanConfigService, SubscriptionPlanConfigService>();
+        services.AddScoped<IRoomTypeService, RoomTypeService>();
+        services.AddScoped<IRoomFeatureService, RoomFeatureService>();
 
         return services;
     }

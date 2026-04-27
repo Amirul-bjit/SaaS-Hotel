@@ -19,22 +19,48 @@
 
 ### 1.1 Subscription Enforcement
 - Block room creation when subscription is expired or inactive (done)
-- Block new bookings for hotels with expired subscriptions
-- Show warning banners to hotel owners approaching expiry
-- Grace period (e.g., 7 days) before hard-blocking
-- Auto-deactivate hotels when subscription lapses
+- Block new bookings for hotels with expired subscriptions (done)
+- Show warning banners to hotel owners approaching expiry (done)
+- Grace period (e.g., 7 days) before hard-blocking (done)
+- Auto-deactivate hotels when subscription lapses (need testing)
 
-### 1.2 Room Types & Amenities
-- `RoomType` entity (Single, Double, Suite, Deluxe, etc.)
-- `RoomFeature` / `Amenity` entity (WiFi, Pool, Sea View, AC, Parking, Breakfast, Gym, Spa)
-- Many-to-many Room ↔ Feature relationship
-- Filter rooms by amenities on marketplace
-- Amenity icons on frontend room cards
+### 1.2 Flexible Room Types & Feature System
+- `RoomType` is **defined by each HOTEL_OWNER**, not globally enforced  
+  - Examples: “Deluxe Twin”, “Ocean Pool Villa”, “Family Suite”  
+  - Stores: `name`, `base_price`, `max_guests`, `description`
+
+- `RoomFeature` (Amenity) is a **global, reusable feature system**  
+  - Examples: WiFi, Private Pool, Sea View, AC, Parking, Breakfast, Gym, Spa  
+  - Designed as **capabilities**, not fixed categories
+
+- Implement **many-to-many relationship**:
+  - `RoomType ↔ RoomFeature`
+  - A room type can have multiple features  
+  - A feature can belong to many room types  
+
+- Rooms inherit features from their `RoomType`  
+  - Individual rooms do NOT redefine features (can be extended later if needed)
+
+- Support **global room filtering (marketplace view)**:
+  - Filter by:
+    - price range  
+    - max guests  
+    - features (e.g., `private_pool`, `sea_view`)  
+    - hotel location  
+
+- Frontend must display:
+  - Feature icons (e.g., pool, WiFi, breakfast)  
+  - Feature tags on room cards  
+  - Clear visual differentiation of room capabilities  
+
+- System must support **extensibility**:
+  - New features can be added without database schema changes  
+  - Works across hotels, resorts, villas, apartments, etc.  
 
 ### 1.3 Hotel Activation / Deactivation
-- `IsActive` flag on Hotel entity
-- SuperAdmin can activate/deactivate hotels
-- Inactive hotels hidden from marketplace and booking
+- `IsActive` flag on Hotel entity (done)
+- SuperAdmin can activate/deactivate hotels (done)
+- Inactive hotels hidden from marketplace and booking (done)
 - Reactivation workflow
 
 ### 1.4 Booking Status Workflow

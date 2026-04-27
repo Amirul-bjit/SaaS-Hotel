@@ -8,6 +8,8 @@ namespace HotelBooking.Application.Services;
 
 public class SubscriptionService : ISubscriptionService
 {
+    private const int GracePeriodDays = 7;
+
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly ISubscriptionPlanConfigRepository _planConfigRepository;
 
@@ -96,26 +98,41 @@ public class SubscriptionService : ISubscriptionService
     private static DateTime CalculateExpiry(DateTime from, BillingCycle cycle) =>
         cycle == BillingCycle.Monthly ? from.AddMonths(1) : from.AddYears(1);
 
-    private static SubscriptionResponse MapToResponse(Subscription s, SubscriptionPlanConfig? config) => new()
+    private static SubscriptionResponse MapToResponse(Subscription s, SubscriptionPlanConfig? config)
     {
-        Id = s.Id,
-        HotelId = s.HotelId,
-        PlanType = s.PlanType,
-        BillingCycle = s.BillingCycle,
-        StartDate = s.StartDate,
-        ExpiryDate = s.ExpiryDate,
-        LastPaymentDate = s.LastPaymentDate,
-        LastPaymentAmount = s.LastPaymentAmount,
-        IsActive = s.IsActive,
-        PlanConfig = config == null ? null : new PlanConfigResponse
+        var now = DateTime.UtcNow;
+        var daysUntilExpiry = (int)(s.ExpiryDate.Date - now.Date).TotalDays;
+        var isExpired = s.ExpiryDate < now;
+        var isInGracePeriod = isExpired && s.IsActive && s.ExpiryDate.AddDays(GracePeriodDays) >= now;
+
+        return new()
         {
-            Id = config.Id,
-            PlanType = config.PlanType,
-            MaxRooms = config.MaxRooms,
-            MonthlyPrice = config.MonthlyPrice,
-            YearlyPrice = config.YearlyPrice,
-            Description = config.Description
-        }
-    };
+            Id = s.Id,
+            HotelId = s.HotelId,
+            PlanType = s.PlanType,
+            BillingCycle = s.BillingCycle,
+            StartDate = s.StartDate,
+            ExpiryDate = s.ExpiryDate,
+            LastPaymentDate = s.LastPaymentDate,
+            LastPaymentAmount = s.LastPaymentAmount,
+            IsActive = s.IsActive,
+            DaysUntilExpiry = daysUntilExpiry,
+            IsInGracePeriod = isInGracePeriod,
+            PlanConfig = config == null ? null : new PlanConfigResponse
+            {
+                Id = config.Id,
+                PlanType = config.PlanType,
+                MaxRooms = config.MaxRooms,
+                MonthlyPrice = config.MonthlyPrice,
+                YearlyPrice = config.YearlyPrice,
+                Description = config.Description
+            }
+        };
+    }
+
+    public async Task<int> DeactivateExpiredSubscriptionsAsync()
+    {
+        return await _subscriptionRepository.DeactivateExpiredAsync(GracePeriodDays);
+    }
 }
 
