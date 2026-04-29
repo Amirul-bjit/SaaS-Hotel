@@ -12,6 +12,7 @@ public class Booking
     public DateOnly CheckIn { get; set; }
     public DateOnly CheckOut { get; set; }
     public BookingStatus Status { get; set; }
+    public byte[] RowVersion { get; set; } = null!;
 
     // Navigation
     public User User { get; set; } = null!;

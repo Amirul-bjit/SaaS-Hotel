@@ -5,6 +5,7 @@ public class Room
     public Guid Id { get; set; }
     public Guid RoomTypeId { get; set; }
     public string RoomNumber { get; set; } = string.Empty;
+    public byte[] RowVersion { get; set; } = null!;
 
     // Navigation
     public RoomType RoomType { get; set; } = null!;

@@ -40,6 +40,82 @@ public class BookingController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateBookingStatusRequest request)
+    {
+        var userId = GetUserId();
+        var hotelId = GetHotelId();
+        var role = GetRole();
+        try
+        {
+            var result = await _bookingService.UpdateBookingStatusAsync(id, request.NewStatus, userId, hotelId, role);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var userId = GetUserId();
+        var hotelId = GetHotelId();
+        var role = GetRole();
+        try
+        {
+            var result = await _bookingService.CancelBookingAsync(id, userId, hotelId, role);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id}/confirm")]
+    [Authorize(Policy = "HotelOwnerOrAdmin")]
+    public async Task<IActionResult> Confirm(Guid id)
+    {
+        var userId = GetUserId();
+        var hotelId = GetHotelId();
+        var role = GetRole();
+        try
+        {
+            var result = await _bookingService.ConfirmBookingAsync(id, userId, hotelId, role);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     private Guid GetUserId() =>
         Guid.Parse(User.Claims.First(c => c.Type == "user_id").Value);
 

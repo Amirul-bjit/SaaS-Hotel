@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
         {
             e.HasKey(r => r.Id);
             e.HasIndex(r => new { r.RoomTypeId, r.RoomNumber }).IsUnique();
+            e.Property(r => r.RowVersion).IsRowVersion();
             e.HasOne(r => r.RoomType)
              .WithMany(rt => rt.Rooms)
              .HasForeignKey(r => r.RoomTypeId)
@@ -81,6 +82,7 @@ public class ApplicationDbContext : DbContext
         {
             e.HasKey(b => b.Id);
             e.Property(b => b.Status).HasConversion<string>();
+            e.Property(b => b.RowVersion).IsRowVersion();
             e.HasOne(b => b.User)
              .WithMany(u => u.Bookings)
              .HasForeignKey(b => b.UserId)

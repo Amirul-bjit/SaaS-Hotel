@@ -152,6 +152,10 @@ export const bookingApi = {
     apiClient.get<BookingResponse[]>('/bookings').then((r) => r.data),
   create: (data: CreateBookingRequest) =>
     apiClient.post<BookingResponse>('/bookings', data).then((r) => r.data),
+  cancel: (id: string) =>
+    apiClient.patch<BookingResponse>(`/bookings/${id}/cancel`).then((r) => r.data),
+  updateStatus: (id: string, newStatus: string) =>
+    apiClient.patch<BookingResponse>(`/bookings/${id}/status`, { newStatus }).then((r) => r.data),
 };
 
 // --- Subscription API ---

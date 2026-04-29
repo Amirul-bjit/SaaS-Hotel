@@ -13,6 +13,18 @@ public class BookingService : IBookingService
     private readonly IRoomRepository _roomRepository;
     private readonly ISubscriptionRepository _subscriptionRepository;
 
+    // Valid state transitions: from → allowed destinations
+    private static readonly Dictionary<BookingStatus, HashSet<BookingStatus>> ValidTransitions = new()
+    {
+        [BookingStatus.Pending] = new() { BookingStatus.Confirmed, BookingStatus.Cancelled },
+        [BookingStatus.Confirmed] = new() { BookingStatus.CheckedIn, BookingStatus.Cancelled, BookingStatus.NoShow },
+        [BookingStatus.CheckedIn] = new() { BookingStatus.CheckedOut },
+        [BookingStatus.CheckedOut] = new() { BookingStatus.Completed },
+        [BookingStatus.Completed] = new(),
+        [BookingStatus.Cancelled] = new(),
+        [BookingStatus.NoShow] = new(),
+    };
+
     public BookingService(
         IBookingRepository bookingRepository,
         IRoomTypeRepository roomTypeRepository,
@@ -53,35 +65,88 @@ public class BookingService : IBookingService
         if (subscription.ExpiryDate.AddDays(7) < DateTime.UtcNow)
             throw new InvalidOperationException("This hotel's subscription has expired. Bookings are temporarily unavailable.");
 
-        // 4. Find a free room for the requested dates
-        var rooms = (await _roomRepository.GetByRoomTypeIdAsync(request.RoomTypeId)).ToList();
-        if (rooms.Count == 0)
-            throw new InvalidOperationException("No rooms available for this room type.");
-
-        var roomIds = rooms.Select(r => r.Id).ToList();
-        var bookedRoomIds = await _bookingRepository.GetBookedRoomIdsAsync(roomIds, request.CheckIn, request.CheckOut);
-
-        var freeRoom = rooms.FirstOrDefault(r => !bookedRoomIds.Contains(r.Id))
-            ?? throw new InvalidOperationException($"No rooms available for the selected dates ({request.CheckIn} to {request.CheckOut}).");
-
-        // 5. Create booking with assigned room
-        var booking = new Booking
+        // 4. Use transaction to prevent double-booking
+        await _bookingRepository.BeginTransactionAsync();
+        try
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            HotelId = resolvedHotelId,
-            RoomTypeId = request.RoomTypeId,
-            RoomId = freeRoom.Id,
-            CheckIn = request.CheckIn,
-            CheckOut = request.CheckOut,
-            Status = BookingStatus.Confirmed
-        };
+            var rooms = (await _roomRepository.GetByRoomTypeIdAsync(request.RoomTypeId)).ToList();
+            if (rooms.Count == 0)
+                throw new InvalidOperationException("No rooms available for this room type.");
 
-        await _bookingRepository.AddAsync(booking);
+            var roomIds = rooms.Select(r => r.Id).ToList();
+            var bookedRoomIds = await _bookingRepository.GetBookedRoomIdsAsync(roomIds, request.CheckIn, request.CheckOut);
+
+            var freeRoom = rooms.FirstOrDefault(r => !bookedRoomIds.Contains(r.Id))
+                ?? throw new InvalidOperationException($"No rooms available for the selected dates ({request.CheckIn} to {request.CheckOut}).");
+
+            // 5. Create booking as Pending (not auto-confirmed)
+            var booking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                HotelId = resolvedHotelId,
+                RoomTypeId = request.RoomTypeId,
+                RoomId = freeRoom.Id,
+                CheckIn = request.CheckIn,
+                CheckOut = request.CheckOut,
+                Status = BookingStatus.Pending
+            };
+
+            await _bookingRepository.AddAsync(booking);
+            await _bookingRepository.SaveChangesAsync();
+            await _bookingRepository.CommitTransactionAsync();
+
+            // Attach nav properties for response mapping
+            booking.RoomType = roomType;
+            booking.Room = freeRoom;
+
+            return MapToResponse(booking, roomType.Name, freeRoom.RoomNumber);
+        }
+        catch
+        {
+            await _bookingRepository.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task<BookingResponse> UpdateBookingStatusAsync(
+        Guid bookingId, BookingStatus newStatus, Guid userId, Guid? hotelId, UserRole role)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId)
+            ?? throw new KeyNotFoundException("Booking not found.");
+
+        // Authorization: customers can only cancel their own bookings
+        if (role == UserRole.CUSTOMER)
+        {
+            if (booking.UserId != userId)
+                throw new UnauthorizedAccessException("You can only manage your own bookings.");
+            if (newStatus != BookingStatus.Cancelled)
+                throw new UnauthorizedAccessException("Customers can only cancel bookings.");
+        }
+
+        // Authorization: hotel owners can only manage their hotel's bookings
+        if (role == UserRole.HOTEL_OWNER && hotelId.HasValue && booking.HotelId != hotelId.Value)
+            throw new UnauthorizedAccessException("This booking does not belong to your hotel.");
+
+        // Validate state transition
+        if (!ValidTransitions.TryGetValue(booking.Status, out var allowed) || !allowed.Contains(newStatus))
+            throw new InvalidOperationException(
+                $"Cannot transition from '{booking.Status}' to '{newStatus}'.");
+
+        booking.Status = newStatus;
+        _bookingRepository.Update(booking);
         await _bookingRepository.SaveChangesAsync();
 
-        return MapToResponse(booking, roomType.Name, freeRoom.RoomNumber);
+        return MapToResponse(booking,
+            booking.RoomType?.Name ?? string.Empty,
+            booking.Room?.RoomNumber ?? string.Empty);
     }
+
+    public Task<BookingResponse> CancelBookingAsync(Guid bookingId, Guid userId, Guid? hotelId, UserRole role)
+        => UpdateBookingStatusAsync(bookingId, BookingStatus.Cancelled, userId, hotelId, role);
+
+    public Task<BookingResponse> ConfirmBookingAsync(Guid bookingId, Guid userId, Guid? hotelId, UserRole role)
+        => UpdateBookingStatusAsync(bookingId, BookingStatus.Confirmed, userId, hotelId, role);
 
     public async Task<IEnumerable<BookingResponse>> GetBookingsAsync(Guid userId, Guid? hotelId, UserRole role)
     {
@@ -106,10 +171,13 @@ public class BookingService : IBookingService
             Id = b.Id,
             UserId = b.UserId,
             HotelId = b.HotelId,
+            HotelName = b.Hotel?.Name ?? string.Empty,
+            HotelLocation = b.Hotel?.Location ?? string.Empty,
             RoomTypeId = b.RoomTypeId,
             RoomTypeName = roomTypeName,
             RoomId = b.RoomId,
             RoomNumber = roomNumber,
+            PricePerNight = b.RoomType?.Price ?? 0,
             CheckIn = b.CheckIn,
             CheckOut = b.CheckOut,
             Status = b.Status

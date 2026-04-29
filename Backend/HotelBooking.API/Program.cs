@@ -51,6 +51,10 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("IsSuperAdmin", policy =>
         policy.RequireAssertion(ctx => ctx.User.HasClaim("role", "SUPER_ADMIN")));
+
+    options.AddPolicy("HotelOwnerOrAdmin", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim("role", "HOTEL_OWNER") || ctx.User.HasClaim("role", "SUPER_ADMIN")));
 });
 
 builder.Services.AddCors(options =>

@@ -120,9 +120,11 @@ public class BookingServiceTests
         var result = await _sut.CreateBookingAsync(CreateValidRequest(), _userId, null);
 
         Assert.NotNull(result);
-        Assert.Equal(BookingStatus.Confirmed, result.Status);
+        Assert.Equal(BookingStatus.Pending, result.Status);
+        _bookingRepo.Verify(b => b.BeginTransactionAsync(), Times.Once);
         _bookingRepo.Verify(b => b.AddAsync(It.IsAny<Booking>()), Times.Once);
         _bookingRepo.Verify(b => b.SaveChangesAsync(), Times.Once);
+        _bookingRepo.Verify(b => b.CommitTransactionAsync(), Times.Once);
     }
 
     [Fact]
@@ -152,5 +154,152 @@ public class BookingServiceTests
             () => _sut.CreateBookingAsync(CreateValidRequest(), _userId, _hotelId));
 
         Assert.Contains("subscription is inactive", ex.Message);
+    }
+
+    // --- Status Workflow Tests ---
+
+    private Booking CreatePendingBooking() => new()
+    {
+        Id = Guid.NewGuid(),
+        UserId = _userId,
+        HotelId = _hotelId,
+        RoomTypeId = _roomTypeId,
+        RoomId = _roomId,
+        CheckIn = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+        CheckOut = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)),
+        Status = BookingStatus.Pending,
+        Room = CreateRoom(),
+        RoomType = CreateRoomType()
+    };
+
+    [Fact]
+    public async Task ConfirmBooking_FromPending_Succeeds()
+    {
+        var booking = CreatePendingBooking();
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var result = await _sut.ConfirmBookingAsync(booking.Id, _userId, _hotelId, UserRole.HOTEL_OWNER);
+
+        Assert.Equal(BookingStatus.Confirmed, result.Status);
+        _bookingRepo.Verify(b => b.Update(It.IsAny<Booking>()), Times.Once);
+        _bookingRepo.Verify(b => b.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CancelBooking_FromPending_Succeeds()
+    {
+        var booking = CreatePendingBooking();
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var result = await _sut.CancelBookingAsync(booking.Id, _userId, null, UserRole.CUSTOMER);
+
+        Assert.Equal(BookingStatus.Cancelled, result.Status);
+    }
+
+    [Fact]
+    public async Task CancelBooking_FromConfirmed_Succeeds()
+    {
+        var booking = CreatePendingBooking();
+        booking.Status = BookingStatus.Confirmed;
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var result = await _sut.CancelBookingAsync(booking.Id, _userId, null, UserRole.CUSTOMER);
+
+        Assert.Equal(BookingStatus.Cancelled, result.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_InvalidTransition_ThrowsInvalidOperation()
+    {
+        var booking = CreatePendingBooking();
+        booking.Status = BookingStatus.Cancelled; // terminal state
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.Confirmed, _userId, _hotelId, UserRole.HOTEL_OWNER));
+
+        Assert.Contains("Cannot transition", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_CheckIn_FromConfirmed_Succeeds()
+    {
+        var booking = CreatePendingBooking();
+        booking.Status = BookingStatus.Confirmed;
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var result = await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.CheckedIn, _userId, _hotelId, UserRole.HOTEL_OWNER);
+
+        Assert.Equal(BookingStatus.CheckedIn, result.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_Customer_CanOnlyCancel()
+    {
+        var booking = CreatePendingBooking();
+        booking.Status = BookingStatus.Confirmed;
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.CheckedIn, _userId, null, UserRole.CUSTOMER));
+
+        Assert.Contains("Customers can only cancel", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_Customer_CannotManageOthersBooking()
+    {
+        var booking = CreatePendingBooking();
+        var otherUserId = Guid.NewGuid();
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _sut.CancelBookingAsync(booking.Id, otherUserId, null, UserRole.CUSTOMER));
+
+        Assert.Contains("your own bookings", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_FullWorkflow_PendingToCompleted()
+    {
+        var booking = CreatePendingBooking();
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        // Pending → Confirmed
+        await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.Confirmed, _userId, _hotelId, UserRole.HOTEL_OWNER);
+        Assert.Equal(BookingStatus.Confirmed, booking.Status);
+
+        // Confirmed → CheckedIn
+        await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.CheckedIn, _userId, _hotelId, UserRole.HOTEL_OWNER);
+        Assert.Equal(BookingStatus.CheckedIn, booking.Status);
+
+        // CheckedIn → CheckedOut
+        await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.CheckedOut, _userId, _hotelId, UserRole.HOTEL_OWNER);
+        Assert.Equal(BookingStatus.CheckedOut, booking.Status);
+
+        // CheckedOut → Completed
+        await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.Completed, _userId, _hotelId, UserRole.HOTEL_OWNER);
+        Assert.Equal(BookingStatus.Completed, booking.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_NoShow_FromConfirmed()
+    {
+        var booking = CreatePendingBooking();
+        booking.Status = BookingStatus.Confirmed;
+        _bookingRepo.Setup(b => b.GetByIdAsync(booking.Id)).ReturnsAsync(booking);
+
+        var result = await _sut.UpdateBookingStatusAsync(booking.Id, BookingStatus.NoShow, _userId, _hotelId, UserRole.HOTEL_OWNER);
+
+        Assert.Equal(BookingStatus.NoShow, result.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_NotFound_ThrowsKeyNotFound()
+    {
+        _bookingRepo.Setup(b => b.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Booking?)null);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => _sut.UpdateBookingStatusAsync(Guid.NewGuid(), BookingStatus.Confirmed, _userId, _hotelId, UserRole.HOTEL_OWNER));
     }
 }

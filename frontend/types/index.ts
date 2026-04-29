@@ -112,13 +112,16 @@ export interface BookingResponse {
   id: string;
   userId: string;
   hotelId: string;
+  hotelName: string;
+  hotelLocation: string;
   roomId: string;
   roomTypeId: string;
   roomTypeName: string;
   roomNumber: string;
+  pricePerNight: number;
   checkIn: string;
   checkOut: string;
-  status: 'Pending' | 'Confirmed' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Cancelled' | 'CheckedIn' | 'CheckedOut' | 'Completed' | 'NoShow';
 }
 
 // --- Subscription ---
