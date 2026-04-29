@@ -38,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IRoomTypeService, RoomTypeService>();
         services.AddScoped<IRoomFeatureService, RoomFeatureService>();
 
+        // Background jobs
+        services.AddHostedService<SubscriptionExpiryBackgroundService>();
+
         return services;
     }
 }

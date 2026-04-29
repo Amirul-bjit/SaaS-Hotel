@@ -145,3 +145,6 @@ D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Swashbuckle.AspN
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\obj\Debug\net9.0\HotelBooking.API.sourcelink.json
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+D:\TestRnD\SaaS-Hotel\Backend\HotelBooking.API\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll

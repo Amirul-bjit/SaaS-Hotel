@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "wBSEvMAuPe8=",
+  "dgSpecHash": "z7pG7rwWvJM=",
   "success": true,
   "projectFilePath": "D:\\TestRnD\\SaaS-Hotel\\Backend\\HotelBooking.API\\HotelBooking.API.csproj",
   "expectedPackageFiles": [
@@ -28,6 +28,9 @@
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\9.0.4\\microsoft.extensions.dependencyinjection.9.0.4.nupkg.sha512",
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.4\\microsoft.extensions.dependencyinjection.abstractions.9.0.4.nupkg.sha512",
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.dependencymodel\\9.0.4\\microsoft.extensions.dependencymodel.9.0.4.nupkg.sha512",
+    "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.diagnostics.abstractions\\9.0.4\\microsoft.extensions.diagnostics.abstractions.9.0.4.nupkg.sha512",
+    "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\9.0.4\\microsoft.extensions.fileproviders.abstractions.9.0.4.nupkg.sha512",
+    "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.hosting.abstractions\\9.0.4\\microsoft.extensions.hosting.abstractions.9.0.4.nupkg.sha512",
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.logging\\9.0.4\\microsoft.extensions.logging.9.0.4.nupkg.sha512",
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\9.0.4\\microsoft.extensions.logging.abstractions.9.0.4.nupkg.sha512",
     "C:\\Users\\BJIT\\.nuget\\packages\\microsoft.extensions.options\\9.0.4\\microsoft.extensions.options.9.0.4.nupkg.sha512",

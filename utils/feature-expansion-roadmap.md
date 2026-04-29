@@ -19,7 +19,7 @@
 
 > **Progress: 11/25 done, 4 partial, 10 remaining** (last reviewed: April 27, 2026)
 
-### 1.1 Subscription Enforcement ✅ (4/5 done)
+### 1.1 Subscription Enforcement ✅ (5/5 done)
 - ✅ Block room creation when subscription is expired or inactive
   - `RoomService` checks `subscription.IsActive` + `ExpiryDate.AddDays(7)` grace
 - ✅ Block new bookings for hotels with expired subscriptions
@@ -28,10 +28,10 @@
   - Owner dashboard + subscription page show amber/red banners for expiring/grace/expired
 - ✅ Grace period (7 days) before hard-blocking
   - `GracePeriodDays = 7` constant in `SubscriptionService`, used across room + booking creation
-- 🔶 Auto-deactivate hotels when subscription lapses
+- ✅ Auto-deactivate hotels when subscription lapses
   - `DeactivateExpiredSubscriptionsAsync()` exists in `SubscriptionService` + `SubscriptionRepository`
   - Exposed via manual `POST /subscriptions/deactivate-expired` endpoint (SuperAdmin only)
-  - **TODO:** Add `IHostedService` / background job to run this nightly (no scheduler exists yet)
+  - `SubscriptionExpiryBackgroundService` (`IHostedService`) runs nightly at 2:00 AM UTC
 
 ### 1.2 Flexible Room Types & Feature System ✅ (all done)
 - ✅ `RoomType` entity — defined per hotel owner, stores: `Name`, `Price`, `MaxGuests`, `Description`
