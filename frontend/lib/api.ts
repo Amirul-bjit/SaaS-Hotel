@@ -75,6 +75,8 @@ export const hotelApi = {
     apiClient.post<HotelResponse>('/hotels', data).then((r) => r.data),
   delete: (id: string) =>
     apiClient.delete(`/hotels/${id}`),
+  toggleActive: (id: string) =>
+    apiClient.patch<HotelResponse>(`/hotels/${id}/toggle-active`).then((r) => r.data),
 };
 
 // --- Room API (owner management of physical rooms) ---

@@ -8,4 +8,5 @@ public interface IHotelService
     Task<HotelResponse?> GetHotelAsync(Guid hotelId);
     Task<IEnumerable<HotelResponse>> GetAllHotelsAsync();
     Task<IEnumerable<HotelPublicResponse>> GetAllHotelsPublicAsync();
+    Task<HotelResponse?> ToggleHotelActiveAsync(Guid hotelId);
 }

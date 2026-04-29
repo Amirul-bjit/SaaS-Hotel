@@ -52,6 +52,9 @@ export default function HotelsPage() {
   // Toggle subscription
   const [toggling, setToggling] = useState<string | null>(null);
 
+  // Toggle hotel active
+  const [togglingHotel, setTogglingHotel] = useState<string | null>(null);
+
   async function handleToggle(hotelId: string) {
     setToggling(hotelId);
     try {
@@ -61,6 +64,18 @@ export default function HotelsPage() {
       setError('Failed to toggle subscription status.');
     } finally {
       setToggling(null);
+    }
+  }
+
+  async function handleToggleHotel(hotelId: string) {
+    setTogglingHotel(hotelId);
+    try {
+      const updated = await hotelApi.toggleActive(hotelId);
+      setHotels((prev) => prev.map((h) => (h.id === hotelId ? updated : h)));
+    } catch {
+      setError('Failed to toggle hotel status.');
+    } finally {
+      setTogglingHotel(null);
     }
   }
 
@@ -169,20 +184,36 @@ export default function HotelsPage() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Owner</th>
+              <th className="px-4 py-3">Hotel Status</th>
               <th className="px-4 py-3">Subscription</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Sub. Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {hotels.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hotels found.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No hotels found.</td></tr>
             )}
             {hotels.map((h) => (
               <tr key={h.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 font-semibold text-gray-800">{h.name}</td>
                 <td className="px-4 py-3 text-gray-600">{h.location}</td>
                 <td className="px-4 py-3 text-gray-600">{ownerName(h.ownerId)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => handleToggleHotel(h.id)}
+                    disabled={togglingHotel === h.id}
+                    className="inline-flex items-center gap-2 group"
+                    title={h.isActive ? 'Click to deactivate hotel' : 'Click to activate hotel'}
+                  >
+                    <div className={`relative w-9 h-5 rounded-full transition-colors ${h.isActive ? 'bg-green-500' : 'bg-gray-300'} ${togglingHotel === h.id ? 'opacity-50' : 'cursor-pointer'}`}>
+                      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${h.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className={`text-xs font-semibold ${h.isActive ? 'text-green-700' : 'text-gray-500'}`}>
+                      {togglingHotel === h.id ? '…' : h.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   {subscriptions[h.id]
                     ? <PlanBadge plan={subscriptions[h.id].planType} />

@@ -6,6 +6,7 @@ public class Hotel
     public string Name { get; set; } = string.Empty;
     public Guid OwnerId { get; set; }
     public string Location { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 
     // Navigation
     public User Owner { get; set; } = null!;

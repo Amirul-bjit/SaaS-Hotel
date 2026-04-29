@@ -30,6 +30,7 @@ export interface HotelResponse {
   name: string;
   ownerId: string;
   location: string;
+  isActive: boolean;
 }
 
 export interface HotelPublicResponse {

@@ -6,4 +6,5 @@ public class HotelResponse
     public string Name { get; set; } = string.Empty;
     public Guid OwnerId { get; set; }
     public string Location { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }

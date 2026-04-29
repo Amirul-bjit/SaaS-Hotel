@@ -72,6 +72,14 @@ public class HotelController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/toggle-active")]
+    [Authorize(Policy = "IsSuperAdmin")]
+    public async Task<IActionResult> ToggleActive(Guid id)
+    {
+        var result = await _hotelService.ToggleHotelActiveAsync(id);
+        return result == null ? NotFound() : Ok(result);
+    }
+
     private Guid GetUserId() =>
         Guid.Parse(User.Claims.First(c => c.Type == "user_id").Value);
 }

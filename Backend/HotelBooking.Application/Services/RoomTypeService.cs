@@ -117,7 +117,7 @@ public class RoomTypeService : IRoomTypeService
         var activeHotelIds = await _subscriptionRepo.GetActiveHotelIdsAsync();
         var allRoomTypes = await _roomTypeRepo.GetAllWithHotelAndRoomsAsync();
 
-        IEnumerable<RoomType> filtered = allRoomTypes.Where(rt => activeHotelIds.Contains(rt.HotelId));
+        IEnumerable<RoomType> filtered = allRoomTypes.Where(rt => rt.Hotel.IsActive && activeHotelIds.Contains(rt.HotelId));
 
         // Only show room types that have at least one physical room
         filtered = filtered.Where(rt => rt.Rooms.Any());
@@ -145,7 +145,7 @@ public class RoomTypeService : IRoomTypeService
         if (roomType == null) return null;
 
         var activeHotelIds = await _subscriptionRepo.GetActiveHotelIdsAsync();
-        if (!activeHotelIds.Contains(roomType.HotelId)) return null;
+        if (!roomType.Hotel.IsActive || !activeHotelIds.Contains(roomType.HotelId)) return null;
 
         return MapToGlobalResponse(roomType, checkIn, checkOut);
     }

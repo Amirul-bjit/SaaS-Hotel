@@ -47,15 +47,15 @@
 - ✅ Extensible — new features added as data rows, no schema changes needed
 - ✅ Owner detail page (`/rooms/[id]`) shows room type info, physical rooms, and bookings table
 
-### 1.3 Hotel Activation / Deactivation ❌ (0/4 done, 1 partial)
-- ❌ `IsActive` flag on Hotel entity — **does NOT exist** on `Hotel.cs`
-  - Marketplace hiding currently relies on subscription status, not a hotel-level flag
-- ❌ SuperAdmin activate/deactivate hotels — no endpoint on `HotelController`
-  - `SubscriptionController.ToggleActive` toggles the subscription, not the hotel itself
-- 🔶 Inactive hotels hidden from marketplace
-  - Effectively achieved via subscription filtering in `HotelService.GetAllHotelsPublicAsync`
-  - **TODO:** Add explicit `Hotel.IsActive` flag for direct admin control independent of subscription
-- ❌ Reactivation workflow — no formal workflow with validation/approval
+### 1.3 Hotel Activation / Deactivation ✅ (4/4 done)
+- ✅ `IsActive` flag on Hotel entity — added to `Hotel.cs` with default `true`
+  - EF Core migration `AddHotelIsActive` created
+- ✅ SuperAdmin activate/deactivate hotels — `PATCH /hotels/{id}/toggle-active` on `HotelController`
+  - `HotelService.ToggleHotelActiveAsync` toggles `Hotel.IsActive` directly
+- ✅ Inactive hotels hidden from marketplace
+  - `HotelService.GetAllHotelsPublicAsync` filters by `h.IsActive && activeSubscription`
+  - `RoomTypeService.GetAllForMarketplaceAsync` and `GetByIdForMarketplaceAsync` also check `Hotel.IsActive`
+- ✅ Reactivation workflow — SuperAdmin can re-toggle via the same endpoint; frontend toggle in admin hotels table
 
 ### 1.4 Booking Status Workflow ❌ (0/5 done, 2 partial)
 - 🔶 Status enum: only `Pending`, `Confirmed`, `Cancelled` exist in `BookingStatus.cs`

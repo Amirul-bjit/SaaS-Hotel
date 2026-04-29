@@ -53,10 +53,21 @@ public class HotelService : IHotelService
         var activeHotelIds = await _subscriptionRepository.GetActiveHotelIdsAsync();
         var hotels = await _hotelRepository.GetAllAsync();
         return hotels
-            .Where(h => activeHotelIds.Contains(h.Id))
+            .Where(h => h.IsActive && activeHotelIds.Contains(h.Id))
             .Select(h => new HotelPublicResponse { Id = h.Id, Name = h.Name, Location = h.Location });
     }
 
+    public async Task<HotelResponse?> ToggleHotelActiveAsync(Guid hotelId)
+    {
+        var hotel = await _hotelRepository.GetByIdAsync(hotelId);
+        if (hotel == null) return null;
+
+        hotel.IsActive = !hotel.IsActive;
+        await _hotelRepository.SaveChangesAsync();
+
+        return MapToResponse(hotel);
+    }
+
     private static HotelResponse MapToResponse(Hotel hotel) =>
-        new() { Id = hotel.Id, Name = hotel.Name, OwnerId = hotel.OwnerId, Location = hotel.Location };
+        new() { Id = hotel.Id, Name = hotel.Name, OwnerId = hotel.OwnerId, Location = hotel.Location, IsActive = hotel.IsActive };
 }
